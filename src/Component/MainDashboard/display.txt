@@ -1,0 +1,755 @@
+import React, { useState } from 'react';
+import { 
+  Row, Col, Card, Typography, 
+  Space, Divider, Select, Tooltip, Button, 
+  Badge, Tag, Statistic
+} from 'antd';
+import { 
+  PieChartOutlined,
+  EnvironmentOutlined,
+  ReloadOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+  SafetyOutlined,
+  WifiOutlined,
+  CloudOutlined
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+
+// Color scheme for different status levels
+const STATUS_COLORS = {
+  normal: '#52c41a',    // Green
+  severe: '#faad14',    // Orange
+  critical: '#f5222d',  // Red
+  default: '#d9d9d9'    // Gray
+};
+
+// Static data for 16 locations (4 per row × 4 rows)
+const LOCATION_DATA = [
+  { 
+    id: 1, 
+    name: 'Location 1A', 
+    co2: 450, 
+    phosphine: 0.05, 
+    co2Ip: '192.168.1.101', 
+    phosphineIp: '192.168.2.101',
+    co2Device: 'CO2-Sensor-001',
+    phosphineDevice: 'PH3-Sensor-001'
+  },
+  { 
+    id: 2, 
+    name: 'Location 1B', 
+    co2: 850, 
+    phosphine: 0.08, 
+    co2Ip: '192.168.1.102', 
+    phosphineIp: '192.168.2.102',
+    co2Device: 'CO2-Sensor-002',
+    phosphineDevice: 'PH3-Sensor-002'
+  },
+  { 
+    id: 3, 
+    name: 'Location 1C', 
+    co2: 1200, 
+    phosphine: 0.12, 
+    co2Ip: '192.168.1.103', 
+    phosphineIp: '192.168.2.103',
+    co2Device: 'CO2-Sensor-003',
+    phosphineDevice: 'PH3-Sensor-003'
+  },
+  { 
+    id: 4, 
+    name: 'Location 1D', 
+    co2: 1800, 
+    phosphine: 0.18, 
+    co2Ip: '192.168.1.104', 
+    phosphineIp: '192.168.2.104',
+    co2Device: 'CO2-Sensor-004',
+    phosphineDevice: 'PH3-Sensor-004'
+  },
+  { 
+    id: 5, 
+    name: 'Location 2A', 
+    co2: 2800, 
+    phosphine: 0.25, 
+    co2Ip: '192.168.1.105', 
+    phosphineIp: '192.168.2.105',
+    co2Device: 'CO2-Sensor-005',
+    phosphineDevice: 'PH3-Sensor-005'
+  },
+  { 
+    id: 6, 
+    name: 'Location 2B', 
+    co2: 600, 
+    phosphine: 0.06, 
+    co2Ip: '192.168.1.106', 
+    phosphineIp: '192.168.2.106',
+    co2Device: 'CO2-Sensor-006',
+    phosphineDevice: 'PH3-Sensor-006'
+  },
+  { 
+    id: 7, 
+    name: 'Location 2C', 
+    co2: 950, 
+    phosphine: 0.10, 
+    co2Ip: '192.168.1.107', 
+    phosphineIp: '192.168.2.107',
+    co2Device: 'CO2-Sensor-007',
+    phosphineDevice: 'PH3-Sensor-007'
+  },
+  { 
+    id: 8, 
+    name: 'Location 2D', 
+    co2: 1400, 
+    phosphine: 0.15, 
+    co2Ip: '192.168.1.108', 
+    phosphineIp: '192.168.2.108',
+    co2Device: 'CO2-Sensor-008',
+    phosphineDevice: 'PH3-Sensor-008'
+  },
+  { 
+    id: 9, 
+    name: 'Location 3A', 
+    co2: 2200, 
+    phosphine: 0.22, 
+    co2Ip: '192.168.1.109', 
+    phosphineIp: '192.168.2.109',
+    co2Device: 'CO2-Sensor-009',
+    phosphineDevice: 'PH3-Sensor-009'
+  },
+  { 
+    id: 10, 
+    name: 'Location 3B', 
+    co2: 3200, 
+    phosphine: 0.30, 
+    co2Ip: '192.168.1.110', 
+    phosphineIp: '192.168.2.110',
+    co2Device: 'CO2-Sensor-010',
+    phosphineDevice: 'PH3-Sensor-010'
+  },
+  { 
+    id: 11, 
+    name: 'Location 3C', 
+    co2: 750, 
+    phosphine: 0.07, 
+    co2Ip: '192.168.1.111', 
+    phosphineIp: '192.168.2.111',
+    co2Device: 'CO2-Sensor-011',
+    phosphineDevice: 'PH3-Sensor-011'
+  },
+  { 
+    id: 12, 
+    name: 'Location 4A', 
+    co2: 1100, 
+    phosphine: 0.11, 
+    co2Ip: '192.168.1.112', 
+    phosphineIp: '192.168.2.112',
+    co2Device: 'CO2-Sensor-012',
+    phosphineDevice: 'PH3-Sensor-012'
+  },
+  { 
+    id: 13, 
+    name: 'Location 4B', 
+    co2: 1600, 
+    phosphine: 0.17, 
+    co2Ip: '192.168.1.113', 
+    phosphineIp: '192.168.2.113',
+    co2Device: 'CO2-Sensor-013',
+    phosphineDevice: 'PH3-Sensor-013'
+  },
+  { 
+    id: 14, 
+    name: 'Location 4C', 
+    co2: 2600, 
+    phosphine: 0.24, 
+    co2Ip: '192.168.1.114', 
+    phosphineIp: '192.168.2.114',
+    co2Device: 'CO2-Sensor-014',
+    phosphineDevice: 'PH3-Sensor-014'
+  },
+  { 
+    id: 15, 
+    name: 'Location 15', 
+    co2: 3500, 
+    phosphine: 0.35, 
+    co2Ip: '192.168.1.115', 
+    phosphineIp: '192.168.2.115',
+    co2Device: 'CO2-Sensor-015',
+    phosphineDevice: 'PH3-Sensor-015'
+  },
+  { 
+    id: 16, 
+    name: 'Location 16', 
+    co2: 1500, 
+    phosphine: 0.20, 
+    co2Ip: '192.168.1.116', 
+    phosphineIp: '192.168.2.116',
+    co2Device: 'CO2-Sensor-016',
+    phosphineDevice: 'PH3-Sensor-016'
+  },
+];
+
+// Thresholds for CO2 (ppm)
+const CO2_THRESHOLDS = {
+  normal: 1000,    // Good up to 1000 ppm
+  severe: 2500,    // Moderate up to 2500 ppm
+  max: 4000,       // Max for visualization
+};
+
+// Thresholds for Phosphine (ppm)
+const PHOSPHINE_THRESHOLDS = {
+  normal: 0.1,     // Good up to 0.1 ppm
+  severe: 0.3,     // Moderate up to 0.3 ppm
+  max: 0.5,        // Max for visualization
+};
+
+// Determine status based on value and thresholds
+const getStatus = (value, thresholds) => {
+  if (value <= thresholds.normal) return 'normal';
+  if (value <= thresholds.severe) return 'severe';
+  return 'critical';
+};
+
+// Get overall device status based on both CO2 and Phosphine
+const getOverallDeviceStatus = (co2, phosphine) => {
+  const co2Status = getStatus(co2, CO2_THRESHOLDS);
+  const phosphineStatus = getStatus(phosphine, PHOSPHINE_THRESHOLDS);
+  
+  // Return the worst status
+  if (co2Status === 'critical' || phosphineStatus === 'critical') return 'critical';
+  if (co2Status === 'severe' || phosphineStatus === 'severe') return 'severe';
+  return 'normal';
+};
+
+// Get status color
+const getStatusColor = (status) => STATUS_COLORS[status] || STATUS_COLORS.default;
+
+// Get status icon
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'normal': return <SafetyOutlined style={{ color: STATUS_COLORS.normal, fontSize: '14px' }} />;
+    case 'severe': return <WarningOutlined style={{ color: STATUS_COLORS.severe, fontSize: '14px' }} />;
+    case 'critical': return <WarningOutlined style={{ color: STATUS_COLORS.critical, fontSize: '14px' }} />;
+    default: return null;
+  }
+};
+
+// Radial Gauge Component
+const RadialGauge = ({ value, thresholds, type = 'co2' }) => {
+  const status = getStatus(value, thresholds);
+  const maxValue = type === 'co2' ? CO2_THRESHOLDS.max : PHOSPHINE_THRESHOLDS.max;
+  const percentage = Math.min(100, (value / maxValue) * 100);
+  
+  return (
+    <div style={{ position: 'relative', width: '80px', height: '80px', margin: '0 auto' }}>
+      {/* Outer ring */}
+      <div style={{
+        position: 'absolute',
+        width: '80px',
+        height: '80px',
+        borderRadius: '50%',
+        background: `conic-gradient(${getStatusColor(status)} 0% ${percentage}%, #f5f5f5 ${percentage}% 100%)`,
+        boxShadow: `0 0 8px ${getStatusColor(status)}40`
+      }} />
+      
+      {/* Inner circle */}
+      <div style={{
+        position: 'absolute',
+        width: '60px',
+        height: '60px',
+        borderRadius: '50%',
+        background: 'white',
+        top: '10px',
+        left: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: type === 'co2' ? '16px' : '14px', 
+            fontWeight: 'bold',
+            color: getStatusColor(status)
+          }}>
+            {type === 'co2' ? value : value.toFixed(2)}
+          </div>
+          <div style={{ fontSize: '10px', color: '#666' }}>ppm</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// DisplayDashboard Component
+const DisplayDashboard = () => {
+  const [selectedSite, setSelectedSite] = useState('Sonipat (Haryana)');
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [timeFilter, setTimeFilter] = useState('realtime');
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setRefreshCounter(prev => prev + 1);
+  };
+
+  // Calculate summary statistics
+  const calculateSummary = () => {
+    const totalGodowns = LOCATION_DATA.length;
+    const avgCO2 = Math.round(LOCATION_DATA.reduce((sum, loc) => sum + loc.co2, 0) / totalGodowns);
+    const avgPhosphine = LOCATION_DATA.reduce((sum, loc) => sum + loc.phosphine, 0) / totalGodowns;
+    
+    // Count statuses based on overall device status
+    let normalCount = 0;
+    let severeCount = 0;
+    let criticalCount = 0;
+    
+    LOCATION_DATA.forEach(location => {
+      const overallStatus = getOverallDeviceStatus(location.co2, location.phosphine);
+      if (overallStatus === 'normal') normalCount++;
+      else if (overallStatus === 'severe') severeCount++;
+      else if (overallStatus === 'critical') criticalCount++;
+    });
+    
+    return {
+      totalGodowns,
+      avgCO2,
+      avgPhosphine,
+      normalCount,
+      severeCount,
+      criticalCount
+    };
+  };
+
+  const summary = calculateSummary();
+
+  // Render a single location card
+  const renderLocationCard = (location) => {
+    const overallStatus = getOverallDeviceStatus(location.co2, location.phosphine);
+    const co2Status = getStatus(location.co2, CO2_THRESHOLDS);
+    const phosphineStatus = getStatus(location.phosphine, PHOSPHINE_THRESHOLDS);
+
+    return (
+      <Col xs={24} sm={12} md={8} lg={6} key={location.id}>
+        <Card
+          style={{
+            height: '400px',
+            border: `2px solid ${getStatusColor(overallStatus)}`,
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden'
+          }}
+          bodyStyle={{ 
+            padding: '12px',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          {/* Card Header */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'flex-start',
+            marginBottom: '12px'
+          }}>
+            <div>
+              <Text strong style={{ fontSize: '16px', display: 'block' }}>
+                {location.name}
+              </Text>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ 
+                backgroundColor: getStatusColor(overallStatus),
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                textTransform: 'uppercase'
+              }}>
+                {overallStatus}
+              </div>
+            </div>
+          </div>
+
+          {/* IP Addresses - Two columns */}
+          <Row gutter={[8, 8]} style={{ marginBottom: '16px' }}>
+            {/* CO2 Device */}
+            <Col span={12}>
+              <div style={{ 
+                padding: '6px 8px',
+                backgroundColor: '#e6f7ff',
+                borderRadius: '4px',
+                border: `1px solid ${getStatusColor(co2Status)}30`
+              }}>
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Space size={4}>
+                    <CloudOutlined style={{ fontSize: '12px', color: '#1890ff' }} />
+                    <Text strong style={{ fontSize: '11px' }}>CO₂ Device</Text>
+                  </Space>
+                  <Text style={{ 
+                    fontSize: '11px', 
+                    fontFamily: 'monospace',
+                    color: '#000',
+                    wordBreak: 'break-all'
+                  }}>
+                    IP: {location.co2Ip}
+                  </Text>
+                </Space>
+              </div>
+            </Col>
+            
+            {/* Phosphine Device */}
+            <Col span={12}>
+              <div style={{ 
+                padding: '6px 8px',
+                backgroundColor: '#f6ffed',
+                borderRadius: '4px',
+                border: `1px solid ${getStatusColor(phosphineStatus)}30`
+              }}>
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Space size={4}>
+                    <CloudOutlined style={{ fontSize: '12px', color: '#52c41a' }} />
+                    <Text strong style={{ fontSize: '11px' }}>PH₃ Device</Text>
+                  </Space>
+                  <Text style={{ 
+                    fontSize: '11px', 
+                    fontFamily: 'monospace',
+                    color: '#000',
+                    wordBreak: 'break-all'
+                  }}>
+                    IP: {location.phosphineIp}
+                  </Text>
+                </Space>
+              </div>
+            </Col>
+          </Row>
+
+          {/* Gauge Display - Two gauges side by side */}
+          <div style={{ 
+            flex: 1,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px'
+          }}>
+            {/* CO2 Gauge */}
+            <div style={{ width: '48%', textAlign: 'center' }}>
+              <RadialGauge 
+                value={location.co2} 
+                thresholds={CO2_THRESHOLDS} 
+                type="co2" 
+              />
+              <div style={{ 
+                marginTop: '8px',
+                padding: '4px 6px',
+                backgroundColor: `${getStatusColor(co2Status)}15`,
+                borderRadius: '4px',
+              }}>
+                <Space direction="vertical" size={2} align="center">
+                  <Text strong style={{ fontSize: '12px', color: getStatusColor(co2Status) }}>
+                    CO₂: {co2Status.toUpperCase()}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: '10px', color:'black' }}>
+                    {location.co2} ppm
+                  </Text>
+                </Space>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <Divider type="vertical" style={{ height: '80px', margin: '0 4px' }} />
+
+            {/* Phosphine Gauge */}
+            <div style={{ width: '48%', textAlign: 'center' }}>
+              <RadialGauge 
+                value={location.phosphine} 
+                thresholds={PHOSPHINE_THRESHOLDS} 
+                type="phosphine" 
+              />
+              <div style={{ 
+                marginTop: '8px',
+                padding: '4px 6px',
+                backgroundColor: `${getStatusColor(phosphineStatus)}15`,
+                borderRadius: '4px',
+              }}>
+                <Space direction="vertical" size={2} align="center">
+                  <Text strong style={{ fontSize: '12px', color: getStatusColor(phosphineStatus) }}>
+                    PH₃: {phosphineStatus.toUpperCase()}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: '10px', color:'black' }}>
+                    {location.phosphine.toFixed(2)} ppm
+                  </Text>
+                </Space>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            marginTop: '8px',
+            padding: '8px',
+            backgroundColor: `${getStatusColor(overallStatus)}20`,
+            borderRadius: '6px',
+            border: `1px solid ${getStatusColor(overallStatus)}40`
+          }}>
+            <Row gutter={8} align="middle">
+              <Col flex="none">
+                {getStatusIcon(overallStatus)}
+              </Col>
+              <Col flex="auto">
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Text strong style={{ fontSize: '12px' }}>
+                    Overall Status: <span style={{ color: getStatusColor(overallStatus) }}>
+                      {overallStatus.toUpperCase()}
+                    </span>
+                  </Text>
+                  <Row gutter={8} style={{ fontSize: '10px' }}>
+                    <Col span={12}>
+                      <Space size={4}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: getStatusColor(co2Status)
+                        }} />
+                        <Text type="secondary" style={{ color:'black'}}>CO₂: {location.co2} ppm</Text>
+                      </Space>
+                    </Col>
+                    <Col span={12}>
+                      <Space size={4}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: getStatusColor(phosphineStatus)
+                        }} />
+                        <Text type="secondary" style={{ color:'black'}}>PH₃: {location.phosphine.toFixed(2)} ppm</Text>
+                      </Space>
+                    </Col>
+                  </Row>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        </Card>
+      </Col>
+    );
+  };
+
+  return (
+    <div style={{ padding: '16px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+      {/* Header Section */}
+      <div style={{ marginBottom: 16 }}>
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Title level={3} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+              <PieChartOutlined style={{ marginRight: 8, color: '#1890ff' }} /> 
+              Display Dashboard
+            </Title>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Real-time monitoring of CO₂ and Phosphine levels across all godowns
+            </Text>
+          </Col>
+          <Col>
+            <Space wrap>
+              {/* Site Selection */}
+              {/* <Select
+                value={selectedSite}
+                onChange={setSelectedSite}
+                style={{ width: 180 }}
+                size="small"
+              >
+                <Option value="Sonipat (Haryana)">Sonipat (Haryana)</Option>
+                <Option value="Panipat (Haryana)">Panipat (Haryana)</Option>
+                <Option value="Karnal (Haryana)">Karnal (Haryana)</Option>
+                <Option value="Rohtak (Haryana)">Rohtak (Haryana)</Option>
+              </Select>
+
+              
+              <Select
+                value={timeFilter}
+                onChange={setTimeFilter}
+                style={{ width: 120 }}
+                size="small"
+              >
+                <Option value="realtime">Real-time</Option>
+                <Option value="today">Today</Option>
+                <Option value="weekly">Weekly</Option>
+                <Option value="monthly">Monthly</Option>
+              </Select> */}
+
+              {/* Refresh Button */}
+              <Button 
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                size="small"
+              >
+                Refresh
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+
+        {/* Site Information */}
+        <Card size="small" style={{ marginTop: 12, backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}>
+          <Row align="middle" justify="space-between">
+            <Col>
+              <Space>
+                <EnvironmentOutlined style={{ fontSize: 16, color: '#1890ff' }} />
+                <div>
+                  <Title level={5} style={{ margin: 0 }}>{selectedSite}</Title>
+                  <Text type="secondary" style={{ fontSize: '11px' }}>
+                    {LOCATION_DATA.length} Godowns • Last Updated: {new Date().toLocaleTimeString()}
+                  </Text>
+                </div>
+              </Space>
+            </Col>
+            <Col>
+              <Space>
+                <Tooltip title="Normal Status">
+                  <Badge status="success" text={<span style={{ fontSize: '12px' }}>{summary.normalCount} Normal</span>} />
+                </Tooltip>
+                <Tooltip title="Severe Status">
+                  <Badge status="warning" text={<span style={{ fontSize: '12px' }}>{summary.severeCount} Severe</span>} />
+                </Tooltip>
+                <Tooltip title="Critical Status">
+                  <Badge status="error" text={<span style={{ fontSize: '12px' }}>{summary.criticalCount} Critical</span>} />
+                </Tooltip>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+      </div>
+
+      {/* Legend Section */}
+      <Card size="small" style={{ marginBottom: 16, fontSize: '11px' }}>
+        <Row gutter={[8, 8]} justify="center">
+          <Col xs={24} md={8}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                backgroundColor: STATUS_COLORS.normal,
+                marginRight: 6
+              }} />
+              <Text>Normal (CO₂ ≤ {CO2_THRESHOLDS.normal} ppm, PH₃ ≤ {PHOSPHINE_THRESHOLDS.normal} ppm)</Text>
+            </div>
+          </Col>
+          <Col xs={24} md={8}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                backgroundColor: STATUS_COLORS.severe,
+                marginRight: 6
+              }} />
+              <Text>Severe (CO₂ ≤ {CO2_THRESHOLDS.severe} ppm, PH₃ ≤ {PHOSPHINE_THRESHOLDS.severe} ppm)</Text>
+            </div>
+          </Col>
+          <Col xs={24} md={8}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                backgroundColor: STATUS_COLORS.critical,
+                marginRight: 6
+              }} />
+              <Text>Critical (Above threshold limits)</Text>
+            </div>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Godown Cards Grid - 4 per row */}
+      <Row gutter={[16, 16]}>
+        {LOCATION_DATA.map(location => renderLocationCard(location))}
+      </Row>
+
+      {/* Summary Footer */}
+      <div style={{ 
+        marginTop: 24, 
+        padding: '16px', 
+        backgroundColor: '#fff', 
+        borderRadius: 8,
+        border: '1px solid #f0f0f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+      }}>
+        <Row gutter={[16, 16]} justify="space-between" align="middle">
+          <Col xs={24} md={12}>
+            <Title level={5} style={{ margin: 0, fontSize: '16px' }}>Site Summary</Title>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Displaying data for {selectedSite} • {new Date().toLocaleDateString()} • Refresh #{refreshCounter}
+            </Text>
+          </Col>
+          <Col xs={24} md={12}>
+            <Row gutter={[16, 8]} justify="end">
+              <Col>
+                <Statistic 
+                  title="Total Godowns" 
+                  value={summary.totalGodowns} 
+                  prefix={<EnvironmentOutlined style={{ fontSize: '14px' }} />}
+                  valueStyle={{ fontSize: '20px', fontWeight: 'bold' }}
+                />
+              </Col>
+              <Col>
+                <Divider type="vertical" style={{ height: '40px' }} />
+              </Col>
+              <Col>
+                <Statistic 
+                  title="Avg CO₂" 
+                  value={summary.avgCO2} 
+                  suffix="ppm"
+                  valueStyle={{ 
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    color: getStatusColor(getStatus(summary.avgCO2, CO2_THRESHOLDS))
+                  }}
+                />
+              </Col>
+              <Col>
+                <Divider type="vertical" style={{ height: '40px' }} />
+              </Col>
+              <Col>
+                <Statistic 
+                  title="Avg PH₃" 
+                  value={summary.avgPhosphine.toFixed(2)} 
+                  suffix="ppm"
+                  valueStyle={{ 
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    color: getStatusColor(getStatus(summary.avgPhosphine, PHOSPHINE_THRESHOLDS))
+                  }}
+                />
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </div>
+
+      <div style={{ 
+        marginTop: 16, 
+        textAlign: 'center', 
+        padding: '12px 0', 
+        borderTop: '1px solid #f0f0f0',
+        fontSize: '12px',
+        color: '#666'
+      }}>
+        <Text type="secondary">
+          Display Dashboard • {selectedSite} • Auto-refresh every 30 seconds • 
+          Last Updated: {new Date().toLocaleTimeString()} • Total Devices: {LOCATION_DATA.length * 2}
+        </Text>
+      </div>
+    </div>
+  );
+};
+
+export default DisplayDashboard;
+
+
+//-----------------------------------------
+
