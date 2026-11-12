@@ -1,6 +1,7 @@
 // src/pages/Shads.jsx
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaSort, FaSortUp, FaSortDown, FaPlus } from 'react-icons/fa';
+import { CO2API, gasFetch } from '../../config';
 
 const Shads = () => {
   console.log('Shads component rendering');
@@ -54,7 +55,7 @@ const Shads = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(
+      const response = await gasFetch(
         `${CO2API}/api/shads?pageNumber=${page}&pageSize=${pageSize}`
       );
       
@@ -102,7 +103,7 @@ const Shads = () => {
       
       if (editingShad) {
         // PUT request for editing
-        response = await fetch(`${CO2API}/api/shads/${editingShad.id}`, {
+        response = await gasFetch(`${CO2API}/api/shads/${editingShad.id}`, {
           method: 'PUT',
           headers: {
             'accept': '*/*',
@@ -112,7 +113,7 @@ const Shads = () => {
         });
       } else {
         // POST request for adding new
-        response = await fetch(`${CO2API}/api/shads`, {
+        response = await gasFetch(`${CO2API}/api/shads`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -161,7 +162,7 @@ const Shads = () => {
     if (window.confirm('Are you sure you want to delete this Godown?')) {
       try {
         setLoading(true);
-        const response = await fetch(`${CO2API}/api/shads/${id}`, {
+        const response = await gasFetch(`${CO2API}/api/shads/${id}`, {
           method: 'DELETE',
         });
         
@@ -940,7 +941,6 @@ const Shads = () => {
           }
         }
       `}</style>
-
 
 
     </div>

@@ -22,8 +22,7 @@ import {
   ArrowDownOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
-// import { CO2API } from "../../config";
+import { CO2API, gasApi } from "../../config";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -52,7 +51,7 @@ export default function Reports() {
   // Fetch devices list
   const fetchDevices = async () => {
     try {
-      const response = await axios.get(`${CO2API}/api/devices`, {
+      const response = await gasApi.get(`${CO2API}/api/devices`, {
         params: {
           pageNumber: 1,
           pageSize: 100,
@@ -90,7 +89,7 @@ export default function Reports() {
         }
       }
 
-      const response = await axios.get(
+      const response = await gasApi.get(
         `${CO2API}/api/device-logs/transactions`,
         {
           params,
@@ -202,7 +201,7 @@ export default function Reports() {
       }
       
       // Make the request with blob response type
-      const response = await axios.get(apiUrl, {
+      const response = await gasApi.get(apiUrl, {
         responseType: 'blob', // Important: tells axios to handle binary data
         headers: {
           'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel'
@@ -585,7 +584,6 @@ export default function Reports() {
         />
       </Card>
 
-    
     </div>
   );
 }

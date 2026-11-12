@@ -111,3 +111,21 @@ Version Control
 Git
 
 GitHub
+
+Static data edition
+
+This build runs completely on static data — there is no backend, no API call and no .env file.
+Every screen that used to call an API now gets the same kind of response from the static data layer in src/staticData:
+
+src/staticData/seed — the static records (area, companies, devices, racks, tickets, …)
+src/staticData/services — answers each screen's requests from those records, in the browser
+config.js — the data clients the screens import (axiosInstance, axiosdevice, axiosTicket), all wired to the static data layer
+
+Add / edit / delete works on screen and is kept in memory until the page is reloaded.
+
+Run it
+
+npm install
+npm run dev
+
+Login: admin / admin

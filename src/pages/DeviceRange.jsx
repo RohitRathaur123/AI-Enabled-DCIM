@@ -1,6 +1,8 @@
 // src/pages/DeviceRanges.jsx
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaSort, FaSortUp, FaSortDown, FaPlus } from 'react-icons/fa';
+import { CO2API, gasFetch } from '../../config';
+
 const DeviceRanges = () => {
   console.log('DeviceRanges component rendering');
 
@@ -48,7 +50,7 @@ const DeviceRanges = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(
+      const response = await gasFetch(
         `${CO2API}/api/device-ranges?pageNumber=${page}&pageSize=${pageSize}`
       );
       
@@ -142,7 +144,7 @@ const DeviceRanges = () => {
       }
       
       // IMPORTANT FIX: Handle response as text first
-      const response = await fetch(url, {
+      const response = await gasFetch(url, {
         method: method,
         headers: {
           'accept': '*/*',
@@ -213,7 +215,7 @@ const DeviceRanges = () => {
     if (window.confirm('Are you sure you want to delete this device range?')) {
       try {
         setLoading(true);
-        const response = await fetch(`${CO2API}/api/device-ranges/${id}`, {
+        const response = await gasFetch(`${CO2API}/api/device-ranges/${id}`, {
           method: 'DELETE',
           headers: {
             'accept': '*/*',

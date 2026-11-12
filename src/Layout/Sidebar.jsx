@@ -177,7 +177,7 @@
 //   );
 //   return (
 //     <div style={{ padding: "4px 10px 12px", borderTop: `1px solid ${c}20` }}>
-//       <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.6px", margin: "7px 0 8px" }}>Drag a device into the 3D viewer ↓</div>
+//       <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.6px", margin: "7px 0 8px" }}>Drag a device into the 5D viewer ↓</div>
 //       <div style={{ position: "relative", marginBottom: 8 }}>
 //         <SearchOutlined style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 11, pointerEvents: "none" }} />
 //         <input type="text" placeholder="Filter devices…" value={roomSearch} onChange={e => setRoomSearch(e.target.value)} onClick={e => e.stopPropagation()}
@@ -607,7 +607,7 @@
 //                           <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 1 }}>{room.width}m × {room.length}m × {room.height}m</div>
 //                         </div>
 //                         <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
-//                           <Tooltip title="View in 3D Viewer">
+//                           <Tooltip title="View in 5D Viewer">
 //                             <div onClick={e => { e.stopPropagation(); onViewRoom(room.id); }} style={{ width: 27, height: 27, borderRadius: 7, background: "#f0fdf4", border: "1px solid #86efac", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" }}
 //                               onMouseEnter={e => { e.currentTarget.style.background = "#dcfce7"; e.currentTarget.style.borderColor = "#4ade80"; }}
 //                               onMouseLeave={e => { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.borderColor = "#86efac"; }}>
@@ -693,7 +693,7 @@
 //             </div>
 //             <h2 style={{ color: "#ef4444", marginBottom: "8px", fontSize: "20px" }}>Delete Room</h2>
 //             <p style={{ fontSize: "14px", marginBottom: "16px", color: "#374151" }}>Are you sure you want to delete <strong>"{deleteConfirm.roomName}"</strong>?</p>
-//             <p style={{ margin: "0 0 20px 0", fontSize: "12px", color: "#94a3b8" }}>This will remove the room and all its placed devices from the 3D viewer. This action cannot be undone.</p>
+//             <p style={{ margin: "0 0 20px 0", fontSize: "12px", color: "#94a3b8" }}>This will remove the room and all its placed devices from the 5D viewer. This action cannot be undone.</p>
 //             <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
 //               <button onClick={cancelDelete} style={{ padding: "8px 24px", border: "1px solid #d9d9d9", background: "white", borderRadius: "4px", cursor: "pointer", fontSize: "14px" }}>Cancel</button>
 //               <button onClick={confirmDelete} style={{ padding: "8px 24px", background: "#ef4444", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" }}>Yes, Delete</button>
@@ -802,7 +802,7 @@
 //         </div>
 
 //         {/* Main Dashboard start */}
-//         {/* 3D View trigger */}
+//         {/* 5D View trigger */}
 //         <Tooltip title={collapsed ? "Dashboard" : ""} placement="right">
 //           <div onClick={() => navigate("/display-dash-animate")}
 //             style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: location.pathname === "/display-dash-animate" ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
@@ -818,8 +818,8 @@
 //         </Tooltip>
 //         {/* Main Dashboard end */}
 
-//         {/* 3D View trigger */}
-//         <Tooltip title={collapsed ? "3D View" : ""} placement="right">
+//         {/* 5D View trigger */}
+//         <Tooltip title={collapsed ? "5D View" : ""} placement="right">
 //           <div onClick={() => navigate("/dcim-viewer")}
 //             style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: location.pathname === "/dcim-viewer" ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
 //             onMouseEnter={e => { if (location.pathname !== "/dcim-viewer") e.currentTarget.style.background = "#f0f7ff"; }}
@@ -829,7 +829,7 @@
 //             <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: location.pathname === "/dcim-viewer" ? "linear-gradient(135deg, #3b82f6, #1d4ed8)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: location.pathname === "/dcim-viewer" ? "0 2px 8px #3b82f650" : "none", transition: "all 0.2s" }}>
 //               <ApartmentOutlined style={{ fontSize: 15, color: location.pathname === "/dcim-viewer" ? "#fff" : "#64748b" }} />
 //             </div>
-//             {!collapsed && <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: location.pathname === "/dcim-viewer" ? "#2563eb" : "#1e293b" }}>3D View</span>}
+//             {!collapsed && <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: location.pathname === "/dcim-viewer" ? "#2563eb" : "#1e293b" }}>5D View</span>}
 //           </div>
 //         </Tooltip>
 
@@ -1040,9 +1040,15 @@ import {
   UserOutlined,
   CloudServerOutlined,
   BorderOutlined,
-  CustomerServiceOutlined
+  CustomerServiceOutlined,
+  ScanOutlined
 } from "@ant-design/icons";
 import Logo from "../assets/3879707.png";
+
+// ── Demo "ideal datacenter" viewer, reused as-is from AddDataCenter.jsx ──
+// (see idealDatacenterDemo.js for how to remove it)
+import DataCenter3DView from "../pages/Datacenter3dview";
+import { IDEAL_DC, IDEAL_ROOMS } from "../pages/idealDatacenterDemo";
 
 const { Sider } = Layout;
 
@@ -1081,6 +1087,18 @@ const CATEGORY_COLORS = {
   Network: "#9b59b6", Security: "#e74c3c", Storage: "#34495e",
   Safety: "#e67e22",  Environment: "#1abc9c",
 };
+
+const ROOM_TYPES = [
+  { value: "server",     label: "Server Room",     color: "#3498db", icon: "server"        },
+  { value: "ac",         label: "AC Unit Room",    color: "#2ecc71", icon: "snowflake"     },
+  { value: "dg",         label: "DG Set Room",     color: "#e67e22", icon: "bolt"          },
+  { value: "electrical", label: "Electrical Room", color: "#f39c12", icon: "plug"          },
+  { value: "network",    label: "Network Room",    color: "#9b59b6", icon: "network-wired" },
+  { value: "storage",    label: "Storage Room",    color: "#34495e", icon: "hdd"           },
+  { value: "ups",        label: "UPS Room",        color: "#1abc9c", icon: "car-battery"   },
+  { value: "chiller",    label: "Chiller Room",    color: "#16a085", icon: "fan"           },
+  { value: "custom",     label: "Custom Room",     color: "#95a5a6", icon: "door-open"     },
+];
 
 const dcimBus = {
   emit(event, data) {
@@ -1167,7 +1185,7 @@ const RoomDevicePanel = ({ room }) => {
   );
   return (
     <div style={{ padding: "4px 10px 12px", borderTop: `1px solid ${c}20` }}>
-      <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.6px", margin: "7px 0 8px" }}>Drag a device into the 3D viewer ↓</div>
+      <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.6px", margin: "7px 0 8px" }}>Drag a device into the 5D viewer ↓</div>
       <div style={{ position: "relative", marginBottom: 8 }}>
         <SearchOutlined style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 11, pointerEvents: "none" }} />
         <input type="text" placeholder="Filter devices…" value={roomSearch} onChange={e => setRoomSearch(e.target.value)} onClick={e => e.stopPropagation()}
@@ -1206,12 +1224,27 @@ const ASSET_SUB_ITEMS = [
   { key: "modal-specs",      icon: FileTextOutlined,label: "Model Specifications", to: "/modal-specs"      },
 ];
 
+// Master menu items open the matching tab of the Master page (/master?tab=…&subtab=…),
+// where Currency, Country, State, City, Company, Device, Room, Floor, Rack and
+// Rack Power Capacity load their data from the Company and Device APIs.
 const AREA_SUB_ITEMS = [
-  { key: "country", icon: GlobalOutlined,   label: "Country", to: "/add-country" },
-  { key: "state",  icon: EnvironmentOutlined, label: "State", to: "/add-state"  },
-  { key: "city",  icon: BankOutlined, label: "City", to: "/add-city"  },
+  { key: "currency", icon: CreditCardOutlined,  label: "Currency", to: "/master?tab=area&subtab=currency" },
+  { key: "country",  icon: GlobalOutlined,      label: "Country",  to: "/master?tab=area&subtab=country" },
+  { key: "state",    icon: EnvironmentOutlined, label: "State",    to: "/master?tab=area&subtab=state" },
+  { key: "city",     icon: BankOutlined,        label: "City",     to: "/master?tab=area&subtab=city" },
   // { key: "location",  icon: HomeOutlined, label: "Location", to: "/add-location"  },
-  { key: "site",  icon: BankOutlined, label: "Site", to: "/add-site"  },
+  { key: "site",     icon: BankOutlined,        label: "Site",     to: "/master?tab=area&subtab=site" },
+];
+
+const DEVICE_SUB_ITEMS_MASTER = [
+  { key: "m-device-category", icon: ApartmentOutlined, label: "Category",             to: "/master?tab=device-group&subtab=devicecategorypage" },
+  { key: "m-device-type",     icon: TagsOutlined,      label: "Type",                 to: "/master?tab=device-group&subtab=devicetypepage" },
+  { key: "m-model-specs",     icon: FileTextOutlined,  label: "Model Specifications", to: "/master?tab=device-group&subtab=modalspecspage" },
+  { key: "m-device-master",   icon: InboxOutlined,     label: "Device Master",        to: "/master?tab=device-group&subtab=devicemaster" },
+  { key: "m-device-detail",   icon: ClusterOutlined,   label: "Device Detail",        to: "/master?tab=device-group&subtab=device" },
+  { key: "m-rack-location",   icon: AimOutlined,       label: "Device Rack Location", to: "/master?tab=device-group&subtab=device-rack-location" },
+  { key: "m-network-conn",    icon: NodeIndexOutlined, label: "Network Connection",   to: "/master?tab=device-group&subtab=networkconnection" },
+  { key: "m-conn-config",     icon: ApiOutlined,       label: "Connection Config",    to: "/master?tab=device-group&subtab=deviceconconfig" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1251,14 +1284,33 @@ const PACKAGES_SUB_ITEMS = [
   { key: "packages", icon: AppstoreOutlined,   label: "Package", to: "/packages" },
   { key: "billing",  icon: CreditCardOutlined, label: "Billing", to: "/billing"  },
 ];
+
+const TICKET_SUB_ITEMS = [
+  { key: "ticket", icon: AppstoreOutlined,   label: "Ticket", to: "/ticket" },
+  // { key: "billing",  icon: CreditCardOutlined, label: "Billing", to: "/billing"  },
+];
+
+// Their own main menus, right below Ticket Management: one click opens the page.
+const TICKET_TOP_ITEMS = [
+  { key: "ticket-change-management", icon: SwapOutlined,  label: "Change Management", to: "/ticket-change-management" },
+  { key: "ticket-audit",             icon: AuditOutlined, label: "Audit",             to: "/ticket-audit" },
+  { key: "discovery-tool",           icon: ScanOutlined,  label: "Discovery Tool",    to: "/discovery-tool" },
+];
+
+
 const PACKAGES_SUB_ITEMS_MASTER = [
-  { key: "area", icon: BorderOutlined,   label: "Area", isGroup: true, children: AREA_SUB_ITEMS },
-  { key: "tenant",  icon: TeamOutlined, label: "Tenant", to: "/add-tenant"  },
-  { key: "user",  icon: UserOutlined, label: "User", to: "/add-user"  },
-  { key: "role",  icon: UserOutlined, label: "Role", to: "/add-role"  },
-  { key: "dataCenter",  icon: CloudServerOutlined, label: "DataCenter", to: "/add-datacenter"  },
-  { key: "service",  icon: CustomerServiceOutlined, label: "Service", to: "/add-service"  },
-  // { key: "room",  icon: ApartmentOutlined, label: "Room", to: "/add-room"  },
+  { key: "area",        icon: BorderOutlined,          label: "Area",        isGroup: true, children: AREA_SUB_ITEMS },
+  { key: "tenant",      icon: TeamOutlined,            label: "Company",     to: "/master?tab=tenant" },
+  { key: "device",      icon: DatabaseOutlined,        label: "Device",      isGroup: true, children: DEVICE_SUB_ITEMS_MASTER },
+  { key: "user",        icon: UserOutlined,            label: "User",        to: "/master?tab=user" },
+  { key: "role",        icon: UserOutlined,            label: "Role",        to: "/master?tab=role" },
+  { key: "dataCenter",  icon: CloudServerOutlined,     label: "Data Center", to: "/master?tab=dataCenter" },
+  { key: "service",     icon: CustomerServiceOutlined, label: "Service",     to: "/master?tab=service" },
+  { key: "rule-engine", icon: CustomerServiceOutlined, label: "Rule Engine", to: "/master?tab=rule-engine" },
+  { key: "room",        icon: HomeOutlined,            label: "Room",        to: "/master?tab=room" },
+  { key: "floor",       icon: AppstoreOutlined,        label: "Floor",       to: "/master?tab=floor" },
+  { key: "rack",        icon: ControlOutlined,         label: "Rack",        to: "/master?tab=rack" },
+  { key: "rackpowcap",  icon: ThunderboltOutlined,     label: "Rack Power Capacity", to: "/master?tab=rackpowcap" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1449,6 +1501,44 @@ const SubDropdown = ({ label, headerIcon: HeaderIcon, subItems, collapsed, pathn
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TOP-LEVEL LINK — a main menu entry with no sub-menu: one click navigates.
+// ─────────────────────────────────────────────────────────────────────────────
+const TopNavLink = ({ label, icon: Icon, to, collapsed, pathname }) => {
+  const accent = "#3b82f6";
+  const isActive = pathname === to;
+  if (collapsed) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
+        <Tooltip title={label} placement="right">
+          <Link to={to} aria-label={label}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: isActive ? `${accent}18` : "transparent", transition: "all 0.15s", marginBottom: 2 }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#f0f7ff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isActive ? `${accent}18` : "transparent"; }}
+            >
+              <Icon style={{ fontSize: 18, color: isActive ? accent : "#64748b" }} />
+            </div>
+          </Link>
+        </Tooltip>
+      </div>
+    );
+  }
+  return (
+    <div style={{ margin: "2px 4px" }}>
+      <Link to={to} style={{ textDecoration: "none", display: "block" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px 0 14px", height: 42, borderRadius: 8, cursor: "pointer", userSelect: "none", transition: "all 0.15s", background: isActive ? "linear-gradient(90deg, #dbeafe 40%, #f1f5fa 100%)" : "transparent", borderLeft: isActive ? `3px solid ${accent}` : "3px solid transparent" }}
+          onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f1f5fa"; }}
+          onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+        >
+          <GlowIcon icon={Icon} glowColor={accent} isActive={isActive} />
+          <span style={{ flex: 1, fontSize: 15, fontWeight: isActive ? 600 : 500, color: isActive ? accent : "#1e293b", whiteSpace: "nowrap" }}>{label}</span>
+        </div>
+      </Link>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DRAGGABLE FLOATING TOOLBOX PANEL
 // ─────────────────────────────────────────────────────────────────────────────
 const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom, onViewRoom }) => {
@@ -1456,7 +1546,9 @@ const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [expandedRoom,   setExpandedRoom  ] = useState(null);
   const [showAddModal,   setShowAddModal  ] = useState(false);
-  const [newRoom,        setNewRoom       ] = useState({ name: "", width: 20, length: 20, height: 8 });
+  const [newRoom, setNewRoom] = useState({ 
+  name: "", type: "server", width: 20, length: 20, height: 8, kw: 0 
+});
   const [isDragging,     setIsDragging    ] = useState(false);
   const [deleteConfirm,  setDeleteConfirm ] = useState({ open: false, roomId: null, roomName: "" });
 
@@ -1516,7 +1608,7 @@ const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom
   const handleDeleteClick = (e, room) => { e.stopPropagation(); setDeleteConfirm({ open: true, roomId: room.id, roomName: room.name }); };
   const confirmDelete = () => { onDeleteRoom(deleteConfirm.roomId); setExpandedRoom(prev => prev === deleteConfirm.roomId ? null : prev); setDeleteConfirm({ open: false, roomId: null, roomName: "" }); };
   const cancelDelete  = () => setDeleteConfirm({ open: false, roomId: null, roomName: "" });
-  const closeAddModal = () => { setShowAddModal(false); setNewRoom({ name: "", width: 20, length: 20, height: 8 }); };
+ const closeAddModal = () => { setShowAddModal(false); setNewRoom({ name: "", type: "server", width: 20, length: 20, height: 8, kw: 0 }); };
 
   if (!open) return null;
 
@@ -1594,10 +1686,10 @@ const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{room.name}</div>
-                          <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 1 }}>{room.width}m × {room.length}m × {room.height}m</div>
+                          <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 1 }}>{room.width}mm × {room.length}mm × {room.height}mm</div>
                         </div>
                         <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
-                          <Tooltip title="View in 3D Viewer">
+                          <Tooltip title="View in 5D Viewer">
                             <div onClick={e => { e.stopPropagation(); onViewRoom(room.id); }} style={{ width: 27, height: 27, borderRadius: 7, background: "#f0fdf4", border: "1px solid #86efac", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" }}
                               onMouseEnter={e => { e.currentTarget.style.background = "#dcfce7"; e.currentTarget.style.borderColor = "#4ade80"; }}
                               onMouseLeave={e => { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.borderColor = "#86efac"; }}>
@@ -1653,10 +1745,64 @@ const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, color: "#475569", marginBottom: 4, display: "block" }}>Room Name</label>
-              <Input value={newRoom.name} onChange={e => setNewRoom({ ...newRoom, name: e.target.value })} placeholder="e.g., Network Room" size="small" />
+              <Input value={newRoom.name} onChange={e => setNewRoom({...newRoom, name: e.target.value})} 
+  placeholder="e.g., Network Room" size="small" />
+
+{/* Room Type */}
+<div style={{ marginBottom: 16 }}>
+  <label style={{ fontSize: 12, color: "#475569", marginBottom: 4, display: "block" }}>
+    Room Type
+  </label>
+  <select
+    value={newRoom.type}
+    onChange={e => setNewRoom({ ...newRoom, type: e.target.value })}
+    style={{
+      width: "100%", padding: "5px 8px", borderRadius: 6,
+      border: "1px solid #d9d9d9", fontSize: 13,
+      outline: "none", background: "#fff", color: "#1e293b",
+      boxSizing: "border-box", cursor: "pointer",
+    }}
+  >
+    {[
+      { value: "server",     label: "Server Room",     icon: "🖥️" },
+      { value: "ac",         label: "AC Unit Room",    icon: "❄️" },
+      { value: "dg",         label: "DG Set Room",     icon: "⚡" },
+      { value: "electrical", label: "Electrical Room", icon: "🔌" },
+      { value: "network",    label: "Network Room",    icon: "🌐" },
+      { value: "storage",    label: "Storage Room",    icon: "💾" },
+      { value: "ups",        label: "UPS Room",        icon: "🔋" },
+      { value: "chiller",    label: "Chiller Room",    icon: "🌀" },
+      { value: "custom",     label: "Custom Room",     icon: "🚪" },
+    ].map(rt => (
+      <option key={rt.value} value={rt.value}>
+        {rt.icon} {rt.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* KW */}
+<div style={{ marginBottom: 16 }}>
+  <label style={{ fontSize: 12, color: "#475569", marginBottom: 4, display: "block" }}>
+    Power Load (kW) <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>
+  </label>
+  <input
+    type="number"
+    min={0}
+    value={newRoom.kw}
+    onChange={e => setNewRoom({ ...newRoom, kw: parseFloat(e.target.value) || 0 })}
+    placeholder="e.g., 500"
+    style={{
+      width: "100%", padding: "5px 10px", borderRadius: 6,
+      border: "1px solid #d9d9d9", fontSize: 13,
+      outline: "none", boxSizing: "border-box",
+    }}
+  />
+</div>
+
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 24 }}>
-              {[["Width (m)", "width"], ["Length (m)", "length"], ["Height (m)", "height"]].map(([lbl, key]) => (
+              {[["Width (mm)", "width"], ["Length (mm)", "length"], ["Height (mm)", "height"]].map(([lbl, key]) => (
                 <div key={key}>
                   <label style={{ fontSize: 12, color: "#475569", marginBottom: 4, display: "block" }}>{lbl}</label>
                   <Input type="number" size="small" min={2} max={180} value={newRoom[key]} onChange={e => setNewRoom({ ...newRoom, [key]: parseInt(e.target.value) || 8 })} />
@@ -1683,7 +1829,7 @@ const ToolboxPanel = ({ open, onClose, collapsed, rooms, onAddRoom, onDeleteRoom
             </div>
             <h2 style={{ color: "#ef4444", marginBottom: "8px", fontSize: "20px" }}>Delete Room</h2>
             <p style={{ fontSize: "14px", marginBottom: "16px", color: "#374151" }}>Are you sure you want to delete <strong>"{deleteConfirm.roomName}"</strong>?</p>
-            <p style={{ margin: "0 0 20px 0", fontSize: "12px", color: "#94a3b8" }}>This will remove the room and all its placed devices from the 3D viewer. This action cannot be undone.</p>
+            <p style={{ margin: "0 0 20px 0", fontSize: "12px", color: "#94a3b8" }}>This will remove the room and all its placed devices from the 5D viewer. This action cannot be undone.</p>
             <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
               <button onClick={cancelDelete} style={{ padding: "8px 24px", border: "1px solid #d9d9d9", background: "white", borderRadius: "4px", cursor: "pointer", fontSize: "14px" }}>Cancel</button>
               <button onClick={confirmDelete} style={{ padding: "8px 24px", background: "#ef4444", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" }}>Yes, Delete</button>
@@ -1727,6 +1873,16 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
   const [rooms,         setRooms        ] = useState(DEFAULT_ROOMS);
   const [roomIdCounter, setRoomIdCounter] = useState(3);
 
+  // ── Demo "ideal datacenter" row — shown from the 5D View trigger below ──
+  const [showDemo3DView, setShowDemo3DView] = useState(false);
+  const [demo3DTheme,    setDemo3DTheme]    = useState("light");
+  // A ticket pop-up's "Open in Ticket Management" closes the full-screen 5D View first.
+  useEffect(() => {
+    const close = () => setShowDemo3DView(false);
+    window.addEventListener("dcim:close5dView", close);
+    return () => window.removeEventListener("dcim:close5dView", close);
+  }, []);
+
   const getSelectedKey = () => {
     const p = location.pathname;
     if (p === "/co2-reports")       return ["co2-reports"];
@@ -1734,14 +1890,18 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
     return [p.substring(1) || "dashboard"];
   };
 
-  const handleAddRoom = ({ name, width, length, height }) => {
-    const palettes = ["#9b59b6", "#e74c3c", "#1abc9c", "#f39c12", "#3498db", "#2ecc71"];
-    const color = palettes[roomIdCounter % palettes.length];
-    const newRoom = { id: roomIdCounter, name, color, hex: color, width, length, height, icon: "door-open", custom: true };
-    setRooms(prev => [...prev, newRoom]);
-    setRoomIdCounter(c => c + 1);
-    dcimBus.emit("addRoom", newRoom);
+ const handleAddRoom = ({ name, type, width, length, height, kw }) => {
+  const roomTypeDef = ROOM_TYPES.find(rt => rt.value === type) || ROOM_TYPES[0];
+  const newRoom = { 
+    id: roomIdCounter, name, color: roomTypeDef.color, hex: roomTypeDef.color,
+    width, length, height, icon: roomTypeDef.icon.replace("fa-",""), 
+    type, kw: kw || 0, custom: true,
+    showRackPlaceholders: type === "server"  // ← KEY FLAG
   };
+  setRooms(prev => [...prev, newRoom]);
+  setRoomIdCounter(c => c + 1);
+  dcimBus.emit("addRoom", newRoom);
+};
 
   const handleDeleteRoom = (id) => {
     setRooms(prev => prev.filter(r => r.id !== id));
@@ -1749,7 +1909,7 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
   };
 
   const handleViewRoom = (id) => {
-    if (location.pathname !== "/dcim-viewer") navigate("/dcim-viewer");
+    if (location.pathname !== "/display-dash-animate") navigate("/display-dash-animate");
     dcimBus.emit("zoomRoom", { id });
     if (onZoomRoom) onZoomRoom(id);
   };
@@ -1785,14 +1945,14 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
         className="dcim-sidebar"
       >
         {/* Logo */}
-        <div onClick={() => { window.location.href = "/dcim-viewer"; }}
+        <div onClick={() => { window.location.href = "/display-dash-animate"; }}
           style={{ height: 56, flexShrink: 0, display: "flex", alignItems: "center", paddingLeft: collapsed ? 18 : 16, gap: 10, borderBottom: "1px solid #e2e8f0", background: "#f8fafc", cursor: "pointer" }}>
           <img src={Logo} alt="DCIM" style={{ height: 34, width: 34, borderRadius: 8, border: "2px solid #bfdbfe", flexShrink: 0 }} />
           {!collapsed && <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 17, letterSpacing: ".4px" }}>DCIM Monitor</span>}
         </div>
 
         {/* Main Dashboard start */}
-        {/* 3D View trigger */}
+        {/* 5D View trigger */}
         <Tooltip title={collapsed ? "Dashboard" : ""} placement="right">
           <div onClick={() => navigate("/display-dash-animate")}
             style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: location.pathname === "/display-dash-animate" ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
@@ -1808,23 +1968,25 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
         </Tooltip>
         {/* Main Dashboard end */}
 
-        {/* 3D View trigger */}
-        <Tooltip title={collapsed ? "3D View" : ""} placement="right">
-          <div onClick={() => navigate("/dcim-viewer")}
-            style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: location.pathname === "/dcim-viewer" ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
-            onMouseEnter={e => { if (location.pathname !== "/dcim-viewer") e.currentTarget.style.background = "#f0f7ff"; }}
-            onMouseLeave={e => { if (location.pathname !== "/dcim-viewer") e.currentTarget.style.background = "transparent"; }}
+        {/* 5D View trigger — now opens the same "ideal datacenter" demo (DataCenter3DView +
+            IDEAL_DC/IDEAL_ROOMS) that the eye icon in Add Data Center opens, in place of the
+            old /dcim-viewer route. No new menu item — this is the existing 5D View entry. */}
+        <Tooltip title={collapsed ? "5D View" : ""} placement="right">
+          <div onClick={() => setShowDemo3DView(true)}
+            style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: showDemo3DView ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
+            onMouseEnter={e => { if (!showDemo3DView) e.currentTarget.style.background = "#f0f7ff"; }}
+            onMouseLeave={e => { if (!showDemo3DView) e.currentTarget.style.background = "transparent"; }}
           >
-            {location.pathname === "/dcim-viewer" && <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 3, height: 24, borderRadius: "0 3px 3px 0", background: "#3b82f6" }} />}
-            <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: location.pathname === "/dcim-viewer" ? "linear-gradient(135deg, #3b82f6, #1d4ed8)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: location.pathname === "/dcim-viewer" ? "0 2px 8px #3b82f650" : "none", transition: "all 0.2s" }}>
-              <ApartmentOutlined style={{ fontSize: 15, color: location.pathname === "/dcim-viewer" ? "#fff" : "#64748b" }} />
+            {showDemo3DView && <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 3, height: 24, borderRadius: "0 3px 3px 0", background: "#3b82f6" }} />}
+            <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: showDemo3DView ? "linear-gradient(135deg, #3b82f6, #1d4ed8)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: showDemo3DView ? "0 2px 8px #3b82f650" : "none", transition: "all 0.2s" }}>
+              <ApartmentOutlined style={{ fontSize: 15, color: showDemo3DView ? "#fff" : "#64748b" }} />
             </div>
-            {!collapsed && <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: location.pathname === "/dcim-viewer" ? "#2563eb" : "#1e293b" }}>3D View</span>}
+            {!collapsed && <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: showDemo3DView ? "#2563eb" : "#1e293b" }}>5D View</span>}
           </div>
         </Tooltip>
 
         {/* ToolBox trigger */}
-        <Tooltip title={collapsed ? "ToolBox" : ""} placement="right">
+        {/* <Tooltip title={collapsed ? "ToolBox" : ""} placement="right">
           <div onClick={() => setToolboxOpen(p => !p)}
             style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? 0 : "0 14px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", background: toolboxOpen ? "linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%)" : "transparent", transition: "background 0.2s", userSelect: "none", position: "relative" }}
             onMouseEnter={e => { if (!toolboxOpen) e.currentTarget.style.background = "#f0f7ff"; }}
@@ -1842,7 +2004,7 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
               </>
             )}
           </div>
-        </Tooltip>
+        </Tooltip> */}
 
         {/* ── Nav scroll area ── */}
         <div className="nav-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: "6px 0" }}>
@@ -1914,19 +2076,50 @@ const Sidebar = ({ collapsed, isMobile, visible, onZoomRoom }) => {
             headerIcon={AppstoreOutlined}
             subItems={PACKAGES_SUB_ITEMS_MASTER}
             collapsed={collapsed}
+            pathname={location.pathname + location.search}
+          />
+
+           <SubDropdown
+            label="Ticket Management"
+            headerIcon={AppstoreOutlined}
+            subItems={TICKET_SUB_ITEMS}
+            collapsed={collapsed}
             pathname={location.pathname}
           />
 
-          <SubDropdown
+          {/* Change Management · Audit · Discovery Tool — main menus of their own */}
+          {TICKET_TOP_ITEMS.map(item => (
+            <TopNavLink key={item.key} label={item.label} icon={item.icon} to={item.to} collapsed={collapsed} pathname={location.pathname} />
+          ))}
+
+          {/* <SubDropdown
             label="Billing"
             headerIcon={AppstoreOutlined}
             subItems={PACKAGES_SUB_ITEMS}
             collapsed={collapsed}
             pathname={location.pathname}
-          />
+          /> */}
+
+         
 
         </div>
       </Sider>
+
+      {/* Demo "ideal datacenter" — reuses DataCenter3DView + IDEAL_DC/IDEAL_ROOMS exactly
+          as AddDataCenter.jsx does for its demo row. Remove this block (and the two
+          imports + two state hooks + trigger row above) to take the demo back out. */}
+      {showDemo3DView && ReactDOM.createPortal(
+        <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 99990, background: "#0a0e1a" }}>
+          <DataCenter3DView
+            dc={IDEAL_DC}
+            onBack={() => setShowDemo3DView(false)}
+            rooms={IDEAL_ROOMS}
+            theme={demo3DTheme}
+            onThemeChange={setDemo3DTheme}
+          />
+        </div>,
+        document.body
+      )}
 
       <style>{`
         .nav-scroll::-webkit-scrollbar { width: 3px; }

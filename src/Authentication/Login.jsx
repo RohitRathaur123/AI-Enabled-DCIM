@@ -18,7 +18,7 @@ import {
   DashboardOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "./AuthContext";
-import dcim from "../assets/dcim_copy.png";
+import dcim from "../assets/dcim1.webp";
 
 const { Title, Text } = Typography;
 
@@ -55,7 +55,7 @@ const LoginPage = () => {
           login(userData);
 
           message.success("Login successful! Redirecting to dashboard...");
-          setTimeout(() => navigate("/dcim-viewer"), 800);
+          setTimeout(() => navigate("/display-dash-animate"), 800);
         } else {
           setLoginError(
             "Invalid username or password. Use 'admin' / 'admin' to login.",

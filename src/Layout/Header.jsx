@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { Tooltip, Avatar } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import profileLogo from "../assets/headerprofile.jpg";
+import TicketAlertToggle from "../Component/Tickets/TicketAlertToggle";
 
 const SIDEBAR_WIDTH = 270;
 const SIDEBAR_COLLAPSED_WIDTH = 72;
@@ -134,6 +135,9 @@ const Header = ({ onToggle, collapsed, isMobile, showMobileSidebar }) => {
 
         {/* Right Section with Action Buttons */}
         <div className="flex items-center space-x-1 md:space-x-2">
+          {/* Ticket notifications on / off (bottom-right ticket toasts) */}
+          <TicketAlertToggle compact={isMobile} />
+
           {/* Notifications - Static bell icon without badge */}
           <Tooltip title="View Alerts" placement="bottom">
             <button 
@@ -239,7 +243,37 @@ const Header = ({ onToggle, collapsed, isMobile, showMobileSidebar }) => {
                     <UserOutlined style={{ marginRight: "12px", color: "#3b82f6", fontSize: "16px" }} /> 
                     <span style={{ fontWeight: "500" }}>My Profile</span>
                   </button>
-                
+                  
+                  <button 
+                    style={{ 
+                      width: "100%", 
+                      textAlign: "left", 
+                      padding: "12px 20px", 
+                      margin: "4px 0", 
+                      fontSize: "0.875rem", 
+                      color: "#374151", 
+                      borderRadius: "6px", 
+                      transition: "all 0.3s ease-in-out", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      border: "none", 
+                      backgroundColor: "transparent", 
+                      cursor: "pointer" 
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#eff6ff";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.05)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    <SettingOutlined style={{ marginRight: "12px", color: "#3b82f6", fontSize: "16px" }} /> 
+                    <span style={{ fontWeight: "500" }}>Sensor Settings</span>
+                  </button>
                   
                   <div style={{ 
                     borderTop: "1px solid #f3f4f6", 

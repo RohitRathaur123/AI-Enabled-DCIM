@@ -16,9 +16,8 @@ import {
   EnvironmentOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
 import Cookies from "js-cookie";
-
+import { CO2API, gasApi } from '../../../config';
 
 const { Title, Text } = Typography;
 const Paragraph = Typography.Paragraph;
@@ -90,7 +89,7 @@ const MainDashboard = () => {
 
   const fetchDevices = async () => {
     try {
-      const response = await axios.get(DEVICES_URL, {
+      const response = await gasApi.get(DEVICES_URL, {
         params: { pageNumber: 1, pageSize: 100 }
       });
       
@@ -107,7 +106,7 @@ const MainDashboard = () => {
 
   const fetchDeviceLogs = async () => {
     try {
-      const response = await axios.get(DEVICE_LOGS_URL, {
+      const response = await gasApi.get(DEVICE_LOGS_URL, {
         params: { pageNumber: 1, pageSize: 10 }
       });
       
@@ -124,7 +123,7 @@ const MainDashboard = () => {
     if (!selectedDevice) return;
     
     try {
-      const response = await axios.get(REAL_TIME_DEVICE_LOGS_URL, {
+      const response = await gasApi.get(REAL_TIME_DEVICE_LOGS_URL, {
         params: { pageNumber: 1, pageSize: 20 }
       });
       
@@ -655,6 +654,7 @@ const MainDashboard = () => {
           </Text>
         </Space>
       </div>
+
     </div>
   );
 };

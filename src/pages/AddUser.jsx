@@ -38,8 +38,8 @@ const AddUser = () => {
   const [formErrors, setFormErrors] = useState({});
 
   const [users, setUsers] = useState([
-    { id: 1, username: "john_doe",    fullName: "John Doe",    email: "john.doe@example.com",    phone: "+1 234 567 8900", company: "ABC Technologies",  role: "Admin",  status: "Active",   createdDate: "2024-01-15" },
-    { id: 2, username: "jane_smith",  fullName: "Jane Smith",  email: "jane.smith@example.com",  phone: "+1 234 567 8901", company: "BCD Technologies",  role: "User",   status: "Active",   createdDate: "2024-02-20" },
+    { id: 1, username: "john_doe",    fullName: "John Doe",    email: "john.doe@example.com",    phone: "+1 234 567 8900", company: "Acme Technologies",  role: "Admin",  status: "Active",   createdDate: "2024-01-15" },
+    { id: 2, username: "jane_smith",  fullName: "Jane Smith",  email: "jane.smith@example.com",  phone: "+1 234 567 8901", company: "Acme Technologies",  role: "User",   status: "Active",   createdDate: "2024-02-20" },
     { id: 3, username: "mike_wilson", fullName: "Mike Wilson", email: "mike.wilson@example.com", phone: "+1 234 567 8902", company: "Tech Solutions Inc",   role: "Viewer", status: "Inactive", createdDate: "2024-03-10" },
   ]);
 
@@ -306,7 +306,7 @@ const AddUser = () => {
               <Col span={12}>
                 <label style={lbl}>Company</label>
                 <input name="company" value={formData.company} onChange={handleInputChange}
-                  style={{ ...inputStyle, borderColor: "#d9d9d9" }} placeholder="e.g., ABC Technologies"
+                  style={{ ...inputStyle, borderColor: "#d9d9d9" }} placeholder="e.g., Acme Technologies"
                   onFocus={e => e.target.style.borderColor = "#1890ff"} onBlur={e => e.target.style.borderColor = "#d9d9d9"} />
               </Col>
             </Row>

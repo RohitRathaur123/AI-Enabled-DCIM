@@ -376,7 +376,6 @@ const Settings = () => {
         </Row>
       </Form>
 
-  
     </div>
   );
 };

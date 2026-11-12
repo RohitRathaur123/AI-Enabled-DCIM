@@ -13,8 +13,16 @@ import {
   CrownOutlined, RocketOutlined
 } from "@ant-design/icons";
 
+// Manufacturers and their product counts come from the shared asset register:
+// "Products" is how many of the 5D View's 664 assets each one supplied.
+import { MANUFACTURERS, ASSET_SUMMARY } from "../Component/MainDashboard/dcimAssetRegister";
+
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const REGISTER_MANUFACTURERS = MANUFACTURERS.map((m, i) => ({
+  id: i + 1, ...m, status: 'Active', productCount: ASSET_SUMMARY.byManufacturer[m.name] || 0,
+}));
 
 const Manufacturer = () => {
   const [loading, setLoading] = useState(false);
@@ -24,16 +32,7 @@ const Manufacturer = () => {
   const [editingManufacturer, setEditingManufacturer] = useState(null);
   const [error, setError] = useState(null);
 
-  const [manufacturers, setManufacturers] = useState([
-    { id: 1, name: 'Cisco Systems', websiteUrl: 'https://www.cisco.com', supportUrl: 'https://www.cisco.com/support', responsiblePerson: 'John Smith', contactNo: '+1-408-526-4000', status: 'Active', productCount: 45, createdDate: '2024-01-15' },
-    { id: 2, name: 'Dell Technologies', websiteUrl: 'https://www.dell.com', supportUrl: 'https://www.dell.com/support', responsiblePerson: 'Emily Johnson', contactNo: '+1-800-624-9897', status: 'Active', productCount: 78, createdDate: '2024-01-20' },
-    { id: 3, name: 'HP Inc', websiteUrl: 'https://www.hp.com', supportUrl: 'https://support.hp.com', responsiblePerson: 'Michael Brown', contactNo: '+1-650-857-1501', status: 'Active', productCount: 62, createdDate: '2024-02-10' },
-    { id: 4, name: 'Lenovo', websiteUrl: 'https://www.lenovo.com', supportUrl: 'https://support.lenovo.com', responsiblePerson: 'Sarah Davis', contactNo: '+1-855-253-6686', status: 'Active', productCount: 53, createdDate: '2024-02-15' },
-    { id: 5, name: 'Juniper Networks', websiteUrl: 'https://www.juniper.net', supportUrl: 'https://www.juniper.net/support', responsiblePerson: 'Robert Wilson', contactNo: '+1-408-745-2000', status: 'Inactive', productCount: 12, createdDate: '2024-03-01' },
-    { id: 6, name: 'Fortinet', websiteUrl: 'https://www.fortinet.com', supportUrl: 'https://www.fortinet.com/support', responsiblePerson: 'Jessica Martinez', contactNo: '+1-408-235-7700', status: 'Active', productCount: 28, createdDate: '2024-03-10' },
-    { id: 7, name: 'VMware', websiteUrl: 'https://www.vmware.com', supportUrl: 'https://www.vmware.com/support', responsiblePerson: 'David Anderson', contactNo: '+1-877-486-9273', status: 'Active', productCount: 34, createdDate: '2024-03-15' },
-    { id: 8, name: 'Microsoft', websiteUrl: 'https://www.microsoft.com', supportUrl: 'https://support.microsoft.com', responsiblePerson: 'Laura Thompson', contactNo: '+1-800-642-7676', status: 'Active', productCount: 89, createdDate: '2024-04-01' }
-  ]);
+  const [manufacturers, setManufacturers] = useState(REGISTER_MANUFACTURERS);
 
   const [formData, setFormData] = useState({ name: '', websiteUrl: '', supportUrl: '', responsiblePerson: '', contactNo: '', status: true });
   const [searchText, setSearchText] = useState('');
@@ -169,7 +168,7 @@ const Manufacturer = () => {
     },
     {
       title: 'Products', dataIndex: 'productCount', key: 'productCount', width: 72,
-      render: (text) => <Badge count={text} style={{ backgroundColor: '#722ed1', fontSize: 10 }} />,
+      render: (text) => <Badge count={text} showZero overflowCount={99999} style={{ backgroundColor: text ? '#722ed1' : '#d9d9d9', fontSize: 10 }} />,
       sorter: (a, b) => a.productCount - b.productCount,
     },
     {
@@ -302,7 +301,6 @@ const Manufacturer = () => {
         </div>
       </div>
 
- 
 
       {/* ══ ADD / EDIT MODAL ══ */}
       {showModal && (

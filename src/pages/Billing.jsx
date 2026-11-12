@@ -31,7 +31,7 @@ const PACKAGES = {
     price: 4999,
     color: "#64748b",
     gradient: "linear-gradient(135deg,#e8edf5 0%,#a8b8cc 100%)",
-    features: ["Up to 2 Data Centers","Basic 3D Viewer","5 User Accounts","Email Notifications"],
+    features: ["Up to 2 Data Centers","Basic 5D Viewer","5 User Accounts","Email Notifications"],
   },
   gold: {
     name: "Gold",
@@ -39,7 +39,7 @@ const PACKAGES = {
     price: 12999,
     color: "#d97706",
     gradient: "linear-gradient(135deg,#fef9ec 0%,#f59e0b 100%)",
-    features: ["Up to 10 Data Centers","Full 3D Viewer + ToolBox","25 User Accounts","Email + SMS Notifications","Advanced Analytics","API Access"],
+    features: ["Up to 10 Data Centers","Full 5D Viewer + ToolBox","25 User Accounts","Email + SMS Notifications","Advanced Analytics","API Access"],
   },
   platinum: {
     name: "Platinum",
@@ -47,7 +47,7 @@ const PACKAGES = {
     price: 29999,
     color: "#4f46e5",
     gradient: "linear-gradient(135deg,#f0f4ff 0%,#818cf8 100%)",
-    features: ["Unlimited Data Centers","Full 3D Viewer + ToolBox","Unlimited Users","All Notification Channels","Predictive Maintenance","24/7 Dedicated Support"],
+    features: ["Unlimited Data Centers","Full 5D Viewer + ToolBox","Unlimited Users","All Notification Channels","Predictive Maintenance","24/7 Dedicated Support"],
   },
 };
 
@@ -432,6 +432,12 @@ const Billing = () => {
           </div>
         )}
       </SectionCard>
+
+      {/* ── Footer ── */}
+      <div style={{ marginTop:24, textAlign:"center", padding:"14px 0", borderTop:"1px solid #f0f0f0" }}>
+        <span style={{ fontSize:12, color:"#94a3b8" }}>DCIM Billing Portal</span>
+      </div>
+
 
       {/* ══════════ CHANGE PLAN MODAL ══════════ */}
       <CustomModal

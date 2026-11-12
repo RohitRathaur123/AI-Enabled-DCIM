@@ -18,6 +18,12 @@ import {
   FaCogs, FaCube, FaCubes, FaSitemap
 } from 'react-icons/fa';
 
+// How many types and assets of the 5D View fall in each category (shared asset register).
+import { TYPES, ASSET_SUMMARY } from '../Component/MainDashboard/dcimAssetRegister';
+
+const typesIn = (name) => TYPES.filter(t => t.category === name).length;
+const assetsIn = (name) => ASSET_SUMMARY.byCategory[name] || 0;
+
 const { Title, Text } = Typography;
 
 const availableIcons = [
@@ -172,6 +178,16 @@ const DeviceCategory = () => {
       sorter: (a, b) => a.description.localeCompare(b.description),
     },
     {
+      title: 'Types', key: 'types', width: 86, align: 'right',
+      render: (_, r) => <Text style={{ fontSize: 12 }}>{typesIn(r.name)}</Text>,
+      sorter: (a, b) => typesIn(a.name) - typesIn(b.name),
+    },
+    {
+      title: 'Assets', key: 'assets', width: 80, align: 'right',
+      render: (_, r) => <Text strong style={{ fontSize: 12, color: '#1890ff' }}>{assetsIn(r.name).toLocaleString('en-IN')}</Text>,
+      sorter: (a, b) => assetsIn(a.name) - assetsIn(b.name),
+    },
+    {
       title: 'Actions', key: 'actions', width: 80, fixed: 'right',
       render: (_, r) => (
         <Space size={2}>
@@ -278,6 +294,7 @@ const DeviceCategory = () => {
           />
         </div>
       </div>
+
 
       {/* ══ ADD / EDIT MODAL ══ */}
       {showModal && (

@@ -13,11 +13,13 @@ dist-ssr
 *.local
 4-6-25.zip
 
+
+config.js
 # Environment files
 .env
 .env.*
 !.env.example
-config.js
+# config.js is part of the app (static data clients, no secrets) — keep it tracked
 
 # Editor directories and files
 .vscode/*

@@ -44,7 +44,7 @@ const AddTenant = () => {
   const [countryFilter, setCountryFilter] = useState("all");
 
   const [tenants, setTenants] = useState([
-    { id: 1, tenantName: "ABC Technologies", registrationNumber: "REG123456", gstNumber: "GST1234567890", panNumber: "PAN1234567", bankName: "Bank of America", accountNumber: "123456789", ifscCode: "BOFA1234", email: "info@abc.com", phone: "+1 234 567 8900", website: "www.abc.com", address: "123 Tech Park", city: "San Francisco", state: "California", country: "USA", zipCode: "94105", employeeCount: 250, status: "Active", createdDate: "2024-01-15" },
+    { id: 1, tenantName: "Acme Technologies", registrationNumber: "REG123456", gstNumber: "GST1234567890", panNumber: "PAN1234567", bankName: "Bank of America", accountNumber: "123456789", ifscCode: "BOFA1234", email: "info@acmetech.example.com", phone: "+1 234 567 8900", website: "www.acmetech.example.com", address: "123 Tech Park", city: "San Francisco", state: "California", country: "USA", zipCode: "94105", employeeCount: 250, status: "Active", createdDate: "2024-01-15" },
     { id: 2, tenantName: "Tech Solutions Inc", registrationNumber: "REG789012", gstNumber: "GST7890123456", panNumber: "PAN7654321", bankName: "Chase Bank", accountNumber: "987654321", ifscCode: "CHASE5678", email: "contact@techsolutions.com", phone: "+1 234 567 8901", website: "www.techsolutions.com", address: "456 Business Ave", city: "New York", state: "New York", country: "USA", zipCode: "10001", employeeCount: 150, status: "Active", createdDate: "2024-02-20" },
     { id: 3, tenantName: "Data Center Inc", registrationNumber: "REG345678", gstNumber: "GST3456789012", panNumber: "PAN3456789", bankName: "Wells Fargo", accountNumber: "456123789", ifscCode: "WELLS9012", email: "info@datacenter.com", phone: "+1 234 567 8902", website: "www.datacenter.com", address: "789 Data Drive", city: "Austin", state: "Texas", country: "USA", zipCode: "78701", employeeCount: 75, status: "Inactive", createdDate: "2024-03-10" },
     { id: 4, tenantName: "Cloud Solutions Ltd", registrationNumber: "REG901234", gstNumber: "GST9012345678", panNumber: "PAN9012345", bankName: "Citibank", accountNumber: "321654987", ifscCode: "CITI3456", email: "hello@cloudsolutions.com", phone: "+1 234 567 8903", website: "www.cloudsolutions.com", address: "321 Cloud Street", city: "Seattle", state: "Washington", country: "USA", zipCode: "98101", employeeCount: 500, status: "Active", createdDate: "2024-04-05" },
@@ -309,6 +309,8 @@ const AddTenant = () => {
         </div>
       </div>
 
+
+
       {/* ══ ADD / EDIT MODAL ══ */}
       {showModal && (
         <>
@@ -321,7 +323,7 @@ const AddTenant = () => {
 
             {/* Row 1 — Tenant Name + Registration */}
             <Row gutter={12} style={{ marginBottom: 14 }}>
-              <Col span={12}>{field("tenantName", "Tenant Name", "e.g., ABC Technologies", { required: true, maxLen: 100 })}</Col>
+              <Col span={12}>{field("tenantName", "Tenant Name", "e.g., Acme Technologies", { required: true, maxLen: 100 })}</Col>
               <Col span={12}>{field("registrationNumber", "Registration Number", "e.g., REG123456", { maxLen: 50 })}</Col>
             </Row>
 

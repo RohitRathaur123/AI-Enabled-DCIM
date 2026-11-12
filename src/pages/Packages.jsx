@@ -19,7 +19,7 @@ const packages = [
     shimmer: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.5) 50%, transparent 60%)",
     features: [
       { label: "Up to 2 Data Centers",         included: true  },
-      { label: "Basic 3D Viewer",              included: true  },
+      { label: "Basic 5D Viewer",              included: true  },
       { label: "Real-time Alerts",             included: true  },
       { label: "Power Monitoring",             included: true  },
       { label: "5 User Accounts",              included: true  },
@@ -49,7 +49,7 @@ const packages = [
     shimmer: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.6) 50%, transparent 60%)",
     features: [
       { label: "Up to 10 Data Centers",        included: true  },
-      { label: "Full 3D Viewer + ToolBox",     included: true  },
+      { label: "Full 5D Viewer + ToolBox",     included: true  },
       { label: "Real-time Alerts",             included: true  },
       { label: "Power & Cooling Monitoring",   included: true  },
       { label: "25 User Accounts",             included: true  },
@@ -78,7 +78,7 @@ const packages = [
     shimmer: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.55) 50%, transparent 60%)",
     features: [
       { label: "Unlimited Data Centers",       included: true  },
-      { label: "Full 3D Viewer + ToolBox",     included: true  },
+      { label: "Full 5D Viewer + ToolBox",     included: true  },
       { label: "Real-time Alerts",             included: true  },
       { label: "Full Infrastructure Monitor",  included: true  },
       { label: "Unlimited User Accounts",      included: true  },

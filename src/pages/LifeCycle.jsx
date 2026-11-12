@@ -84,7 +84,7 @@ const LifeCycle = () => {
   
   // Companies for dropdown
   const [companies, setCompanies] = useState([
-    { id: 1, name: 'ABC Technologies' },
+    { id: 1, name: 'Acme Technologies' },
     { id: 2, name: 'Tech Solutions Inc' },
     { id: 3, name: 'Data Center Inc' },
     { id: 4, name: 'Cloud Solutions Ltd' }
@@ -132,7 +132,7 @@ const LifeCycle = () => {
     { 
       id: 1, 
       companyId: 1,
-      companyName: 'ABC Technologies',
+      companyName: 'Acme Technologies',
       deviceCategoryId: 1,
       deviceCategoryName: 'Networking Equipment',
       deviceTypeId: 1,
@@ -163,7 +163,7 @@ const LifeCycle = () => {
     { 
       id: 2, 
       companyId: 1,
-      companyName: 'BDF Technologies',
+      companyName: 'Acme Technologies',
       deviceCategoryId: 2,
       deviceCategoryName: 'Servers',
       deviceTypeId: 5,
@@ -1493,7 +1493,6 @@ const LifeCycle = () => {
         </>
       )}
 
-   
 
     </div>
   );

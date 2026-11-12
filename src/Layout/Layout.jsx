@@ -148,6 +148,8 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import AppRoutes from '../Authentication/AppRoutes'; // ← import AppRoutes directly here
+import AIAssistant from '../Component/AIAssistant/AIAssistant';
+import TicketNotifications from '../Component/Tickets/TicketNotifications';
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_WIDTH_COLLAPSED = 80;
@@ -275,6 +277,12 @@ const Layout = () => {
           </div>
         </main>
       </div>
+
+      {/* AI Assistant — global, stays on every page after navigation */}
+      <AIAssistant />
+
+      {/* Ticket toasts (bottom-right) + ticket "View" window — global */}
+      <TicketNotifications />
 
     </div>
   );

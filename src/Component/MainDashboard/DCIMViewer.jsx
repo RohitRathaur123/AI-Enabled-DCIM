@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as THREE from "three";
 import RackSimulator from "./RackSimulator";
+import { useLocation, useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
 
 
 const BUILDING_W = 200, BUILDING_L = 200, BUILDING_H = 16, WALL_T = 2, ROOM_GAP = 6;
@@ -512,6 +514,10 @@ function buildDetailedRack(device, tempLevel=0) {
   const isPowered = device.status!=="NoSupply";
   const bodyColor = tempLevel===2 ? 0x5a0a0a : tempLevel===1 ? 0x4a2200 : 0x000000;
   const g=new THREE.Group(); g.userData={device,isDetailedRack:true,tempLevel};
+
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.setCrossOrigin('anonymous');
+
   g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(RACK_W,TALL_H,RACK_D),
     new THREE.MeshStandardMaterial({color:bodyColor,metalness:0.3,roughness:0.5})),{castShadow:true,name:"rackBodyDetail"}));
   const railMat=new THREE.MeshStandardMaterial({color:0x000000,metalness:0.6,roughness:0.35});
@@ -541,7 +547,7 @@ function buildDetailedRack(device, tempLevel=0) {
   RACK_FACE_IMAGES.forEach((b64, idx) => {
     // skip if placeholder/empty
     if (!b64 || b64.length < 50) return;
-    const tex = new THREE.TextureLoader().load(b64);
+    const tex = textureLoader.load(b64);
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     // idx=0 → top third, idx=1 → middle third, idx=2 → bottom third
@@ -620,7 +626,7 @@ const BACK_FACE_IMAGES = [
 const realBackPlanes = [];
 BACK_FACE_IMAGES.forEach((b64, idx) => {
   if (!b64 || b64.length < 50) return;
-  const tex = new THREE.TextureLoader().load(b64);
+  const tex = textureLoader.load(b64); 
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   const yOffset = (TALL_H/2 - segH/2) - idx * segH;
@@ -1001,6 +1007,151 @@ function buildDroppedWallACSystem(roomGroup, roomDef, roomWorldPos, acStateRef, 
   return root;
 }
 
+function buildRaisedFloorSystem(roomDef) {
+  const RW = Number(roomDef.width) || DEFAULT_ROOM_W;
+  const RL = Number(roomDef.length) || DEFAULT_ROOM_L;
+  const PLENUM_DEPTH = 1.4;
+  const TILE = 1.0;
+
+  const root = new THREE.Group(); root.name = "RaisedFloorSystem";
+
+  const cs = RACK_W + 0.55;
+  const rs = RACK_D + 1.3;
+  const cols = Math.max(2, Math.floor((RW - 3) / cs));
+  const rows = Math.max(1, Math.floor((RL - 3) / rs));
+  const startX = -(cols * cs - (cs - RACK_W)) / 2 + RACK_W / 2;
+  const startZ = -(RL / 2) + RACK_D / 2 + 1.5;
+
+  const rackColX = [];
+  for (let c = 0; c < cols; c++) rackColX.push(startX + c * cs);
+  const rackRowZ = [];
+  for (let r = 0; r < rows; r++) rackRowZ.push(startZ + r * rs);
+
+  console.log("[RaisedFloor] rackColX:", rackColX, "rackRowZ:", rackRowZ);
+
+  // ── Base solid floor tiles (full grid) ──
+  const solidMat = new THREE.MeshStandardMaterial({ color: 0xc7ced9, roughness: 0.8 });
+  const perfMat  = new THREE.MeshStandardMaterial({ color: 0x8893a3, roughness: 0.7, transparent: true, opacity: 0.55 });
+  const floorTilesGroup = new THREE.Group(); floorTilesGroup.name = "FloorTiles";
+
+  const tileCols = Math.max(1, Math.round(RW / TILE));
+  const tileRows = Math.max(1, Math.round(RL / TILE));
+  for (let tr = 0; tr < tileRows; tr++) {
+    for (let tc = 0; tc < tileCols; tc++) {
+      const x = -RW/2 + TILE/2 + tc*TILE;
+      const z = -RL/2 + TILE/2 + tr*TILE;
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(TILE-0.04, 0.06, TILE-0.04), solidMat);
+      tile.position.set(x, 0.03, z);
+      tile.userData.isPerforated = false;
+      floorTilesGroup.add(tile);
+    }
+  }
+
+  // ── DIRECTLY place a perforated strip in front of EACH rack row, EACH rack column ──
+  const PERF_OFFSET = RACK_D / 2 + 0.6;
+  const perforatedCells = [];
+
+  rackRowZ.forEach(rz => {
+    const perfZ = rz - PERF_OFFSET; // one strip in front of this rack row
+    rackColX.forEach(cx => {
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(TILE-0.04, 0.07, TILE-0.04), perfMat);
+      tile.position.set(cx, 0.035, perfZ);
+      tile.userData.isPerforated = true;
+      floorTilesGroup.add(tile);
+
+      for (let dx = -0.32; dx <= 0.32; dx += 0.16) {
+        for (let dz = -0.32; dz <= 0.32; dz += 0.16) {
+          const hole = new THREE.Mesh(new THREE.CircleGeometry(0.035, 8), new THREE.MeshBasicMaterial({ color: 0x222831 }));
+          hole.rotation.x = -Math.PI/2;
+          hole.position.set(cx+dx, 0.072, perfZ+dz);
+          floorTilesGroup.add(hole);
+        }
+      }
+
+      perforatedCells.push({ x: cx, z: perfZ, targetX: cx, targetZ: rz });
+    });
+  });
+  root.add(floorTilesGroup);
+
+  console.log("[RaisedFloor] perforatedCells count:", perforatedCells.length);
+
+  // ── Cold-air arrows: STRAIGHT up then STRAIGHT into the rack ──
+  const arrowGroup = new THREE.Group(); arrowGroup.name = "ColdAirArrows";
+  const ARROW_COLOR = 0x3b82f6, ARROW_COLOR2 = 0x93c5fd;
+  const RISE_Y = 1.6;
+
+  perforatedCells.forEach(({x,z,targetX,targetZ}, idx) => {
+    const upStart  = new THREE.Vector3(x, 0.15, z);
+    const upEnd    = new THREE.Vector3(x, RISE_Y, z);
+    const sideEnd  = new THREE.Vector3(targetX, RISE_Y, targetZ);
+
+    for (let p = 0; p < 2; p++) {
+      const pg = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,0.5,6),
+        new THREE.MeshBasicMaterial({ color: ARROW_COLOR, transparent:true, opacity:0.9, depthTest:false }));
+      pg.add(body);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.13,0.26,7),
+        new THREE.MeshBasicMaterial({ color: ARROW_COLOR2, transparent:true, opacity:0.95, depthTest:false }));
+      cone.position.y = 0.33; pg.add(cone);
+      pg.renderOrder = 999;
+      pg.userData = { upStart, upEnd, sideEnd, tOffset: (idx*0.31 + p/2) % 1, speed: 0.45 };
+      arrowGroup.add(pg);
+    }
+  });
+  root.add(arrowGroup);
+
+  console.log("[RaisedFloor] arrowGroup children:", arrowGroup.children.length);
+
+  // ── Under-floor plenum ──
+  const plenumGroup = new THREE.Group(); plenumGroup.name = "UnderFloorPlenum"; plenumGroup.visible = false;
+  const slab = new THREE.Mesh(new THREE.PlaneGeometry(RW, RL),
+    new THREE.MeshStandardMaterial({ color: 0x40464f, roughness: 0.95, side: THREE.DoubleSide }));
+  slab.rotation.x = -Math.PI/2; slab.position.y = -PLENUM_DEPTH; plenumGroup.add(slab);
+
+  for (let tr = 0; tr < tileRows; tr += 2) for (let tc = 0; tc < tileCols; tc += 2) {
+    const x = -RW/2 + TILE/2 + tc*TILE, z = -RL/2 + TILE/2 + tr*TILE;
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,PLENUM_DEPTH,6),
+      new THREE.MeshStandardMaterial({ color: 0x556070, metalness:0.5 }));
+    leg.position.set(x, -PLENUM_DEPTH/2, z); plenumGroup.add(leg);
+  }
+
+  const cableColors = [0x2563eb,0xf59e0b,0x22c55e,0xe74c3c,0x9b59b6];
+  rackColX.forEach((x, c) => {
+    const col = cableColors[c % cableColors.length];
+    const mat = new THREE.MeshStandardMaterial({ color: col, roughness:0.6 });
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,RL*0.9,8), mat);
+    cable.rotation.x = Math.PI/2;
+    cable.position.set(x, -PLENUM_DEPTH*0.7, 0);
+    plenumGroup.add(cable);
+  });
+  root.add(plenumGroup);
+
+  root.userData = { arrowGroup, plenumGroup, floorTilesGroup, PLENUM_DEPTH };
+  return root;
+}
+
+function animateRaisedFloorSystem(sysGroup, now) {
+  if (!sysGroup) return;
+  const arrowGroup = sysGroup.userData.arrowGroup;
+  if (!arrowGroup || !arrowGroup.visible) return;
+
+  arrowGroup.children.forEach(pg => {
+    const { upStart, upEnd, tOffset, speed } = pg.userData;
+    if (!upStart) return;
+    const t = ((now * speed + tOffset) % 1 + 1) % 1;
+
+    // straight up the whole cycle, no turn
+    const pos = new THREE.Vector3().lerpVectors(upStart, upEnd, t);
+    pg.position.copy(pos);
+    pg.rotation.set(0, 0, 0); // keep default "up" orientation always
+
+    const fadeIn  = Math.min(1, t / 0.08);
+    const fadeOut = Math.min(1, (1 - t) / 0.15);
+    const opacity = 0.9 * Math.min(fadeIn, fadeOut);
+    pg.children.forEach(ch => { ch.material.opacity = opacity; });
+  });
+}
+
 function animateDroppedWallACSystem(sysGroup, now, acStateRef) {
   if(!sysGroup) return;
   const arrowGroup = sysGroup.userData.arrowGroup;
@@ -1125,7 +1276,7 @@ function createOuterBuilding() {
   const lx=lc.getContext("2d"); lx.fillStyle="rgba(8,18,48,0.92)"; lx.fillRect(0,0,1280,220);
   lx.fillStyle="#3b82f6"; lx.fillRect(100,24,1080,6);
   lx.font="bold 88px Arial"; lx.textAlign="center"; lx.textBaseline="middle"; lx.fillStyle="#fff"; lx.fillText("AI-Enabled SaaS DCIM",640,118);
-  lx.font="38px Arial"; lx.fillStyle="#93c5fd"; lx.fillText(`Tier IV Facility  ×  ${BUILDING_W}m × ${BUILDING_L}m  ×  Multi-Room`,640,188);
+  lx.font="38px Arial"; lx.fillStyle="#93c5fd"; lx.fillText(`Tier IV Facility  ×  Multi-Room`,640,188);
   const lt=new THREE.CanvasTexture(lc); lt.minFilter=THREE.LinearFilter;
   const ls=new THREE.Sprite(new THREE.SpriteMaterial({map:lt,transparent:true,depthTest:false}));
   ls.scale.set(80,14,1); ls.position.set(0,BUILDING_H+8,0); ls.renderOrder=2; g.add(ls);
@@ -1254,7 +1405,7 @@ function  ViewImpactTrackerPanel({ open, onClose, collapsed, acStatusDisplay, ro
 
   useEffect(() => { setPanelPos(prev => ({ ...prev, x: sidebarEdge + 12 })); }, [sidebarEdge]);
 
-  // Close lightbox on Escape (stop propagation so 3D viewer Esc doesn't also fire)
+  // Close lightbox on Escape (stop propagation so 5D viewer Esc doesn't also fire)
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape" && zoomedView) {
@@ -1973,6 +2124,17 @@ export default function DCIMViewer({ roomToZoom=null, onViewChange=null }) {
   const [transparentView, setTransparentView] = useState(false);
   const [viewsDropdownOpen, setViewsDropdownOpen] = useState(false);
 
+  const location = useLocation();
+   const navigate = useNavigate();
+   const dcFromRoute = location.state?.dc;
+
+
+  // ── Bird's Eye View State ──
+// const [isBirdEye, setIsBirdEye] = useState(false);
+const cameraAnimRef = useRef(null);
+// Store computed room positions for export use
+const roomWorldPositionsRef = useRef([]);
+
   // ── BACKEND HIDDEN STATE ──────────────────────────────────────────────────
 const wallACIdsRef = useRef([]); // stores all Wall AC IDs
 const rackCostsRef = useRef({}); // stores cost per rack server (hidden)
@@ -2198,6 +2360,22 @@ const handleSaveTrackerView = useCallback(() => {
   let screenshot = null;
   try {
     const { renderer, scene, camera } = threeRef.current;
+    // ── Smooth Camera Animation (Bird's Eye / Room Zoom) ──
+if (cameraAnimRef.current) {
+  const anim = cameraAnimRef.current;
+  anim.progress += delta / anim.duration;
+  if (anim.progress >= 1) {
+    cameraRef.current.position.copy(anim.targetPos);
+    controlsRef.current.target.copy(anim.targetLookAt);
+    cameraAnimRef.current = null;
+    if (anim.onComplete) anim.onComplete();
+  } else {
+    const ease = 1 - Math.pow(1 - anim.progress, 3); // easeOutCubic
+    cameraRef.current.position.lerpVectors(anim.startPos, anim.targetPos, ease);
+    controlsRef.current.target.lerpVectors(anim.startLookAt, anim.targetLookAt, ease);
+  }
+  controlsRef.current.update();
+}
     if (renderer && scene && camera) {
       renderer.render(scene, camera);
       const canvas = canvasRef.current;
@@ -2282,7 +2460,13 @@ const handleSaveTrackerView = useCallback(() => {
         addedRooms.current.add(rd.id); roomWorldPositions[rd.id]=new THREE.Vector3(x,0,z);
         if(idx===0) serverRoomGroupRef.current=grp;
 
+// Wall AC Server Room add
+
         if(idx===0) {
+           const floorSys = buildRaisedFloorSystem({ ...rd, width: rw, length: rl });
+  grp.add(floorSys);
+  threeRef.current.raisedFloorSys = floorSys;
+
           const defaultACWorldPos = new THREE.Vector3(x, 0, z);
           const defaultACSys = buildDroppedWallACSystem(
             grp,
@@ -2301,6 +2485,16 @@ setTimeout(() => {
   });
 }, 100);
         }
+
+// wall ac server room remove
+
+// if(idx===0) {
+//    const floorSys = buildRaisedFloorSystem({ ...rd, width: rw, length: rl });
+//   grp.add(floorSys);
+//   threeRef.current.raisedFloorSys = floorSys;
+//         }
+
+
 
         const devs=idx===0?devData.servers:idx===1?devData.acUnits:devData.dgUnits;
         // Store rack server costs (backend hidden)
@@ -2579,7 +2773,7 @@ Object.keys(acStateRef.current).forEach(id => {
           if(flowGrp&&curve){const speed=isActive?0.20:0.04 ;flowGrp.children.forEach(p=>{const t=((now*speed+p.userData.tOffset)%1+1)%1;const pt=curve.getPoint(t);p.position.copy(pt);const sc=0.6+Math.sin(now*6+p.userData.tOffset*Math.PI*2)*0.3;p.scale.setScalar(Math.max(0.1,sc));});}
         });
         if(wallACGroupRef.current) { /* pre-built Wall AC removed — no-op */ }
-
+if (threeRef.current.raisedFloorSys) animateRaisedFloorSystem(threeRef.current.raisedFloorSys, now);
         droppedWallACSystems.current.forEach(sys=>{
           animateDroppedWallACSystem(sys.group, now, acStateRef);
         });
@@ -2589,7 +2783,10 @@ Object.keys(acStateRef.current).forEach(id => {
       }
       animate();
 
-      threeRef.current={scene,camera,renderer,orbit,roomMap,interactive,collapseAll,dgWorldPositions};
+      threeRef.current={
+  ...threeRef.current, // keep raisedFloorSys and anything else already set
+  scene,camera,renderer,orbit,roomMap,interactive,collapseAll,dgWorldPositions
+};
       sceneReady.current=true;
       setTimeout(() => {
         const initialACStatus = {};
@@ -2673,6 +2870,317 @@ useEffect(() => {
     notify("Overview: full data center","info");
   },[notify,onViewChange,clearAllCables]);
 
+// ── Export / Download Functions ──────────────────────────────────────────────
+
+function getRoomPositions() {
+  // Recompute if ref is empty
+  if (roomWorldPositionsRef.current.length === 0) {
+    const positions = [];
+    INITIAL_ROOMS.forEach(rd => {
+      const pos = computeRoomPosition(positions, rd.width, rd.length);
+      positions.push({ x: pos.x, z: pos.z, w: rd.width, l: rd.length, ...rd });
+    });
+    roomWorldPositionsRef.current = positions;
+  }
+  return roomWorldPositionsRef.current;
+}
+
+function captureCanvas() {
+  const { renderer, scene, camera } = threeRef.current;
+  if (!renderer || !scene || !camera) return null;
+  renderer.render(scene, camera);
+  return renderer.domElement;
+}
+
+function createDataSummaryCanvas(canvasWidth, dataHeight) {
+  const c = document.createElement("canvas");
+  c.width = canvasWidth;
+  c.height = dataHeight;
+  const ctx = c.getContext("2d");
+
+  // Background
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(0, 0, canvasWidth, dataHeight);
+
+  // Title bar
+  ctx.fillStyle = "#1e293b";
+  ctx.fillRect(0, 0, canvasWidth, 36);
+  ctx.fillStyle = "#38bdf8";
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("📊 DATA CENTER SUMMARY — AI-Enabled SaaS DCIM", 16, 24);
+
+  // Timestamp
+  ctx.fillStyle = "#64748b";
+  ctx.font = "11px monospace";
+  ctx.textAlign = "right";
+  ctx.fillText(new Date().toLocaleString(), canvasWidth - 16, 24);
+
+  const rooms = getRoomPositions();
+  const deviceData = generateDeviceData();
+  let y = 52;
+
+  // Room summary table
+  const cols = [60, 140, 80, 80, 80, 120];
+  const headers = ["#", "Room Name", "Size", "Devices", "Avg Temp", "Status"];
+
+  // Header row
+  ctx.fillStyle = "#1e3a5f";
+  ctx.fillRect(10, y, canvasWidth - 20, 26);
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "bold 11px Arial";
+  ctx.textAlign = "left";
+  let xOff = 20;
+  headers.forEach((h, i) => { ctx.fillText(h, xOff, y + 17); xOff += cols[i]; });
+  y += 30;
+
+  const roomDevices = [
+    { count: deviceData.servers.length, temps: deviceData.servers.map(d => parseFloat(d.temperature)) },
+    { count: deviceData.acUnits.length, temps: deviceData.acUnits.map(d => parseFloat(d.temperature)) },
+    { count: deviceData.dgUnits.length, temps: deviceData.dgUnits.map(d => parseFloat(d.temperature)) },
+  ];
+
+  rooms.forEach((room, i) => {
+    if (i % 2 === 0) { ctx.fillStyle = "#141e30"; ctx.fillRect(10, y, canvasWidth - 20, 24); }
+    const rd = roomDevices[i] || { count: 0, temps: [] };
+    const avgTemp = rd.temps.length ? (rd.temps.reduce((a, b) => a + b, 0) / rd.temps.length).toFixed(1) : "—";
+    const tempNum = parseFloat(avgTemp);
+    ctx.fillStyle = "#cbd5e1"; ctx.font = "11px Arial"; ctx.textAlign = "left";
+    xOff = 20;
+    ctx.fillText(String(i + 1), xOff, y + 16); xOff += cols[0];
+    ctx.fillStyle = room.hex; ctx.fillText(room.name, xOff, y + 16); xOff += cols[1];
+    ctx.fillStyle = "#94a3b8"; ctx.fillText(`${room.width}×${room.length}`, xOff, y + 16); xOff += cols[2];
+    ctx.fillText(String(rd.count), xOff, y + 16); xOff += cols[3];
+    ctx.fillStyle = tempNum > 27 ? "#ef4444" : tempNum > 24 ? "#f97316" : "#22c55e";
+    ctx.fillText(avgTemp + "°C", xOff, y + 16); xOff += cols[4];
+    ctx.fillStyle = "#22c55e"; ctx.fillText("● Operational", xOff, y + 16);
+    y += 26;
+  });
+
+  y += 8;
+  // Totals
+  const totalDevices = deviceData.servers.length + deviceData.acUnits.length + deviceData.dgUnits.length;
+  const allTemps = [...deviceData.servers, ...deviceData.acUnits, ...deviceData.dgUnits].map(d => parseFloat(d.temperature));
+  const overallAvg = (allTemps.reduce((a, b) => a + b, 0) / allTemps.length).toFixed(1);
+  ctx.fillStyle = "#38bdf8"; ctx.font = "bold 12px Arial"; ctx.textAlign = "left";
+  ctx.fillText(`Total Devices: ${totalDevices}  |  Overall Avg Temp: ${overallAvg}°C  |  Rooms: ${rooms.length}  |  Floor: Multifloor`, 20, y + 14);
+
+  // Footer
+  ctx.fillStyle = "#334155";
+  ctx.fillRect(0, dataHeight - 28, canvasWidth, 28);
+  ctx.fillStyle = "#475569"; ctx.font = "10px monospace"; ctx.textAlign = "center";
+  ctx.fillText("Generated by AI-Enabled SaaS DCIM  •  The IV Facility", canvasWidth / 2, dataHeight - 10);
+
+  return c;
+}
+
+function exportAsPNG() {
+  const srcCanvas = captureCanvas();
+  const dataCanvas = createDataSummaryCanvas(srcCanvas.width, 220);
+  const outCanvas = document.createElement("canvas");
+  outCanvas.width = srcCanvas.width;
+  outCanvas.height = srcCanvas.height + dataCanvas.height;
+  const ctx = outCanvas.getContext("2d");
+  ctx.drawImage(srcCanvas, 0, 0);
+  ctx.drawImage(dataCanvas, 0, srcCanvas.height);
+
+  const link = document.createElement("a");
+  link.download = `DCIM_3D_View_${Date.now()}.png`;
+  link.href = outCanvas.toDataURL("image/png");
+  link.click();
+}
+
+function exportAsJPEG() {
+  const srcCanvas = captureCanvas();
+  const dataCanvas = createDataSummaryCanvas(srcCanvas.width, 220);
+  const outCanvas = document.createElement("canvas");
+  outCanvas.width = srcCanvas.width;
+  outCanvas.height = srcCanvas.height + dataCanvas.height;
+  const ctx = outCanvas.getContext("2d");
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+  ctx.drawImage(srcCanvas, 0, 0);
+  ctx.drawImage(dataCanvas, 0, srcCanvas.height);
+
+  const link = document.createElement("a");
+  link.download = `DCIM_3D_View_${Date.now()}.jpg`;
+  link.href = outCanvas.toDataURL("image/jpeg", 0.92);
+  link.click();
+}
+
+function exportAsPDF() {
+  const srcCanvas = captureCanvas();
+  const imgData = srcCanvas.toDataURL("image/jpeg", 0.85);
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+
+  // Title
+  pdf.setFontSize(18);
+  pdf.setTextColor(30, 64, 175);
+  pdf.text("AI-Enabled SaaS DCIM — 5D Facility View", 14, 18);
+  pdf.setFontSize(9);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(`The IV Facility  •  Multifloor  •  Generated: ${new Date().toLocaleString()}`, 14, 25);
+
+  // 3D Image
+  const imgW = pageW - 28;
+  const imgH = (srcCanvas.height / srcCanvas.width) * imgW;
+  const maxImgH = pageH - 90;
+  const scaledH = Math.min(imgH, maxImgH);
+  pdf.addImage(imgData, "JPEG", 14, 30, imgW, scaledH);
+
+  // Data table below image
+  let tableY = 30 + scaledH + 8;
+  const rooms = getRoomPositions();
+  const deviceData = generateDeviceData();
+  const roomDevices = [
+    { count: deviceData.servers.length, temps: deviceData.servers.map(d => parseFloat(d.temperature)) },
+    { count: deviceData.acUnits.length, temps: deviceData.acUnits.map(d => parseFloat(d.temperature)) },
+    { count: deviceData.dgUnits.length, temps: deviceData.dgUnits.map(d => parseFloat(d.temperature)) },
+  ];
+
+  // Table header
+  pdf.setFillColor(30, 58, 95);
+  pdf.rect(14, tableY, pageW - 28, 8, "F");
+  pdf.setFontSize(9);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("#", 18, tableY + 5.5);
+  pdf.text("Room Name", 30, tableY + 5.5);
+  pdf.text("Size", 90, tableY + 5.5);
+  pdf.text("Devices", 115, tableY + 5.5);
+  pdf.text("Avg Temp", 140, tableY + 5.5);
+  pdf.text("Status", 170, tableY + 5.5);
+  tableY += 10;
+
+  rooms.forEach((room, i) => {
+    if (i % 2 === 0) { pdf.setFillColor(20, 30, 48); pdf.rect(14, tableY, pageW - 28, 7, "F"); }
+    const rd = roomDevices[i] || { count: 0, temps: [] };
+    const avgTemp = rd.temps.length ? (rd.temps.reduce((a, b) => a + b, 0) / rd.temps.length).toFixed(1) : "—";
+    pdf.setTextColor(203, 213, 225);
+    pdf.text(String(i + 1), 18, tableY + 5);
+    const hex = room.hex.replace("#", "");
+    pdf.setTextColor(parseInt(hex.substr(0, 2), 16), parseInt(hex.substr(2, 2), 16), parseInt(hex.substr(4, 2), 16));
+    pdf.text(room.name, 30, tableY + 5);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(`${room.width}×${room.length}`, 90, tableY + 5);
+    pdf.text(String(rd.count), 115, tableY + 5);
+    const tn = parseFloat(avgTemp);
+    pdf.setTextColor(tn > 27 ? 239 : tn > 24 ? 249 : 34, tn > 27 ? 68 : tn > 24 ? 115 : 197, tn > 27 ? 68 : tn > 24 ? 22 : 94);
+    pdf.text(avgTemp + "°C", 140, tableY + 5);
+    pdf.setTextColor(34, 197, 94);
+    pdf.text("● Operational", 170, tableY + 5);
+    tableY += 8;
+  });
+
+  // Footer
+  const totalDevices = deviceData.servers.length + deviceData.acUnits.length + deviceData.dgUnits.length;
+  pdf.setFontSize(8);
+  pdf.setTextColor(71, 85, 105);
+  pdf.text(`Total Devices: ${totalDevices}  |  Rooms: ${rooms.length}  |  Generated by AI-Enabled SaaS DCIM`, 14, pageH - 8);
+
+  pdf.save(`DCIM_3D_Report_${Date.now()}.pdf`);
+}
+
+function exportAsDXF() {
+  const rooms = getRoomPositions();
+  let entities = "";
+
+  const addLine = (x1, y1, x2, y2, layer = "0", color = 7) => {
+    entities += `0\nLINE\n8\n${layer}\n62\n${color}\n10\n${x1.toFixed(2)}\n20\n${y1.toFixed(2)}\n30\n0\n11\n${x2.toFixed(2)}\n21\n${y2.toFixed(2)}\n31\n0\n`;
+  };
+  const addRect = (cx, cy, w, h, layer, color) => {
+    const hw = w / 2, hh = h / 2;
+    addLine(cx - hw, cy - hh, cx + hw, cy - hh, layer, color);
+    addLine(cx + hw, cy - hh, cx + hw, cy + hh, layer, color);
+    addLine(cx + hw, cy + hh, cx - hw, cy + hh, layer, color);
+    addLine(cx - hw, cy + hh, cx - hw, cy - hh, layer, color);
+  };
+  const addText = (x, y, text, h = 2.0, layer = "LABELS") => {
+    entities += `0\nTEXT\n8\n${layer}\n10\n${x.toFixed(2)}\n20\n${y.toFixed(2)}\n30\n0\n40\n${h}\n1\n${text}\n`;
+  };
+  const addCircle = (cx, cy, r, layer, color) => {
+    entities += `0\nCIRCLE\n8\n${layer}\n62\n${color}\n10\n${cx.toFixed(2)}\n20\n${cy.toFixed(2)}\n30\n0\n40\n${r.toFixed(2)}\n`;
+  };
+
+  // Building outline
+  addRect(0, 0, BUILDING_W, BUILDING_L, "BUILDING", 8);
+
+  // Title
+  addText(0, BUILDING_L / 2 + 6, "AI-Enabled SaaS DCIM - Floor Plan", 3.5, "TITLE");
+
+  // Room colors for DXF (ACI index)
+  const dxfColors = { "#3498db": 4, "#2ecc71": 3, "#e67e22": 30, "#ef4444": 1, "#9b59b6": 6 };
+
+  // Draw rooms
+  rooms.forEach((room, i) => {
+    const col = dxfColors[room.hex] || 7;
+    addRect(room.x, room.z, room.w, room.l, "ROOMS", col);
+    addText(room.x, room.z + 1, room.name, 1.8, "LABELS");
+
+    // Draw rack grid inside server rooms
+    if (room.name === "Server Room") {
+      const cols = Math.max(2, Math.floor((room.w - 3) / (RACK_W + 0.55)));
+      const cs = RACK_W + 0.55, rs = RACK_D + 1.3;
+      const startX = -(cols * cs - (cs - RACK_W)) / 2 + RACK_W / 2;
+      const startZ = -(room.l / 2) + RACK_D / 2 + 1.5;
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < cols; c++) {
+          const rx = room.x + startX + c * cs;
+          const rz = room.z + startZ + r * rs;
+          addRect(rx, rz, RACK_W, RACK_D, "RACKS", 5);
+        }
+      }
+    }
+
+    // AC units in AC room
+    if (room.name === "AC Unit Room") {
+      const acCols = Math.max(2, Math.floor(room.w / 5));
+      const sp = Math.min(4, (room.w - 4) / acCols);
+      for (let r = 0; r < 2; r++) {
+        for (let c = 0; c < acCols; c++) {
+          const ax = room.x - ((acCols - 1) * sp) / 2 + c * sp;
+          const az = room.z - (room.l / 2) + 4 + r * sp;
+          addCircle(ax, az, 0.8, "AC_UNITS", 3);
+        }
+      }
+    }
+
+    // DG sets in DG room
+    if (room.name === "DG Set Room") {
+      for (let d = 0; d < 4; d++) {
+        const dx = room.x - 4.5 + d * 3;
+        const dz = room.z;
+        addRect(dx, dz, 3.5, 1.8, "DG_SETS", 30);
+        addText(dx, dz - 1.5, `DG-${d + 1}`, 1.0, "LABELS");
+      }
+    }
+  });
+
+  // North arrow
+  const nx = -BUILDING_W / 2 + 10, ny = -BUILDING_L / 2 + 10;
+  addLine(nx, ny, nx, ny + 8, "SYMBOLS", 2);
+  addLine(nx - 1.5, ny + 6, nx, ny + 8, "SYMBOLS", 2);
+  addLine(nx + 1.5, ny + 6, nx, ny + 8, "SYMBOLS", 2);
+  addText(nx, ny - 1.5, "N", 2.0, "SYMBOLS");
+
+  // Scale bar
+  const sx = BUILDING_W / 2 - 40, sy = -BUILDING_L / 2 + 6;
+  addLine(sx, sy, sx + 20, sy, "SYMBOLS", 7);
+  addLine(sx, sy - 0.5, sx, sy + 0.5, "SYMBOLS", 7);
+  addLine(sx + 20, sy - 0.5, sx + 20, sy + 0.5, "SYMBOLS", 7);
+  addText(sx + 10, sy - 2, "20 units", 1.2, "SYMBOLS");
+
+  const dxf = `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n6\n0\nLAYER\n2\nBUILDING\n70\n0\n62\n8\n6\nCONTINUOUS\n0\nLAYER\n2\nROOMS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nRACKS\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nLAYER\n2\nLABELS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nAC_UNITS\n70\n0\n62\n3\n6\nCONTINUOUS\n0\nLAYER\n2\nDG_SETS\n70\n0\n62\n30\n6\nCONTINUOUS\n0\nLAYER\n2\nSYMBOLS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${entities}0\nENDSEC\n0\nEOF\n`;
+
+  const blob = new Blob([dxf], { type: "application/dxf" });
+  const link = document.createElement("a");
+  link.download = `DCIM_FloorPlan_${Date.now()}.dxf`;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
   const applyTransparentView = useCallback((enabled) => {
   window.__dcimTransparentView = enabled;
   const { scene, roomMap } = threeRef.current;
@@ -2716,6 +3224,35 @@ useEffect(() => {
   notify(enabled ? "Transparent View — real rack textures active" : "Default View restored", "success");
 }, [notify]);
 
+const [belowFloorView, setBelowFloorView] = useState(false);
+
+const applyBelowFloorView = useCallback((enabled) => {
+  const sys = threeRef.current.raisedFloorSys;
+  const { orbit } = threeRef.current;
+  if (!sys) return;
+  sys.userData.plenumGroup.visible = enabled;
+  sys.userData.arrowGroup.visible = !enabled;
+  sys.userData.floorTilesGroup.children.forEach(t => {
+    if (t.userData?.isPerforated) t.material.opacity = enabled ? 0.15 : 0.55;
+  });
+  if (orbit) {
+    const srGroup = serverRoomGroupRef.current;
+    const p = srGroup ? srGroup.position : new THREE.Vector3();
+    if (enabled) {
+      orbit.target.set(p.x, -1.0, p.z);
+      orbit.sph.phi = Math.PI/2.3;
+      orbit.sph.radius = 14;
+    } else {
+      orbit.target.set(p.x, 4, p.z);
+      orbit.sph.phi = Math.PI/3.2;
+      orbit.sph.radius = 20;
+    }
+    orbit.update();
+  }
+  setBelowFloorView(enabled);
+  notify(enabled ? "Below-floor plenum view — cable trays visible" : "Above-floor view restored", "success");
+}, [notify]);
+
   const doAddRoom=useCallback(rd=>{
     const {scene,roomMap}=threeRef.current; if(!scene||!roomMap||addedRooms.current.has(rd.id)) return;
     const rw=Number(rd.width)||DEFAULT_ROOM_W,rl=Number(rd.length)||DEFAULT_ROOM_L,rh=Number(rd.height)||DEFAULT_ROOM_H;
@@ -2725,6 +3262,42 @@ useEffect(() => {
     const grp=createRoomGroup(fd); grp.position.set(x,0,z); scene.add(grp);
     roomMap[rd.id]={group:grp,roomDef:fd,devices:[]}; addedRooms.current.add(rd.id);
     notify(`Room "${rd.name}" added`,"success");
+    if (rd.showRackPlaceholders || rd.type === "server") {
+    const rw = Number(rd.width) || DEFAULT_ROOM_W;
+    const rl = Number(rd.length) || DEFAULT_ROOM_L;
+    const RACK_COLS = Math.max(2, Math.floor((rw - 3) / (RACK_W + 0.55)));
+    const RACK_ROWS = Math.max(1, Math.floor((rl - 3) / (RACK_D + 1.3)));
+    
+    for (let row = 0; row < RACK_ROWS; row++) {
+      for (let col = 0; col < RACK_COLS; col++) {
+        const phGeo = new THREE.BoxGeometry(RACK_W, 0.05, RACK_D);
+        const phMat = new THREE.MeshBasicMaterial({ 
+          color: 0x3498db, transparent: true, opacity: 0.15, 
+          wireframe: false, side: THREE.DoubleSide 
+        });
+        const ph = new THREE.Mesh(phGeo, phMat);
+        
+        // Dashed edge outline
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(RACK_W, 0.3, RACK_D)),
+          new THREE.LineDashedMaterial({ 
+            color: 0x3498db, dashSize: 0.3, gapSize: 0.15, 
+            transparent: true, opacity: 0.6 
+          })
+        );
+        edges.computeLineDistances();
+        
+        const startX = -(RACK_COLS * (RACK_W + 0.55) - 0.55) / 2 + RACK_W / 2;
+        const startZ = -(rl / 2) + RACK_D / 2 + 1.5;
+        ph.position.set(startX + col * (RACK_W + 0.55), 0.025, startZ + row * (RACK_D + 1.3));
+        edges.position.copy(ph.position);
+        edges.position.y = 0.15;
+        
+        grp.add(ph);
+        grp.add(edges);
+      }
+    }
+  }
   },[notify]);
 
   const doAddDevice=useCallback((roomId,typeName)=>{
@@ -2860,6 +3433,221 @@ useEffect(() => {
     </div>
   );
 
+
+
+  // ── Bird's Eye View ──
+const [isBirdEye, setIsBirdEye] = useState(false);
+
+function toggleBirdEyeView() {
+  const { orbit } = threeRef.current;
+  if (!orbit) return;
+
+  const goingBirdEye = !isBirdEye;
+  const targetPhi    = goingBirdEye ? 0.05 : Math.PI / 3.8; // near-vertical vs normal angle
+  const targetRadius = goingBirdEye ? 200  : 150;
+  const startPhi    = orbit.sph.phi;
+  const startRadius = orbit.sph.radius;
+  const startTarget = orbit.target.clone();
+  const endTarget   = new THREE.Vector3(0, 0, 0);
+
+  const duration = 900;
+  const t0 = performance.now();
+
+  function step(now) {
+    const t = Math.min((now - t0) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    orbit.sph.phi    = startPhi    + (targetPhi    - startPhi)    * ease;
+    orbit.sph.radius = startRadius + (targetRadius - startRadius) * ease;
+    orbit.target.lerpVectors(startTarget, endTarget, ease);
+    orbit.update();
+    if (t < 1) requestAnimationFrame(step);
+    else setIsBirdEye(goingBirdEye);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── Export Helpers ──
+function getRoomPositions() {
+  const positions = [];
+  INITIAL_ROOMS.forEach(rd => {
+    const pos = computeRoomPosition(positions, rd.width, rd.length);
+    positions.push({ x: pos.x, z: pos.z, w: rd.width, l: rd.length, ...rd });
+  });
+  return positions;
+}
+
+
+
+function createDataSummaryCanvas(cw, dh) {
+  const c = document.createElement("canvas");
+  c.width = cw; c.height = dh;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, cw, dh);
+  ctx.fillStyle = "#1e293b"; ctx.fillRect(0, 0, cw, 36);
+  ctx.fillStyle = "#38bdf8"; ctx.font = "bold 16px Arial"; ctx.textAlign = "left";
+  ctx.fillText("DATA CENTER SUMMARY - AI-Enabled SaaS DCIM", 16, 24);
+  ctx.fillStyle = "#64748b"; ctx.font = "11px monospace"; ctx.textAlign = "right";
+  ctx.fillText(new Date().toLocaleString(), cw - 16, 24);
+  const rooms = getRoomPositions();
+  const dd = generateDeviceData();
+  const rdevs = [
+    { count: dd.servers.length, temps: dd.servers.map(d => parseFloat(d.temperature)) },
+    { count: dd.acUnits.length, temps: dd.acUnits.map(d => parseFloat(d.temperature)) },
+    { count: dd.dgUnits.length, temps: dd.dgUnits.map(d => parseFloat(d.temperature)) },
+  ];
+  let y = 52;
+  const cols = [60, 140, 80, 80, 80, 120];
+  const hdrs = ["#", "Room Name", "Size", "Devices", "Avg Temp", "Status"];
+  ctx.fillStyle = "#1e3a5f"; ctx.fillRect(10, y, cw - 20, 26);
+  ctx.fillStyle = "#e2e8f0"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left";
+  let xo = 20;
+  hdrs.forEach((h, i) => { ctx.fillText(h, xo, y + 17); xo += cols[i]; });
+  y += 30;
+  rooms.forEach((room, i) => {
+    if (i % 2 === 0) { ctx.fillStyle = "#141e30"; ctx.fillRect(10, y, cw - 20, 24); }
+    const rd = rdevs[i] || { count: 0, temps: [] };
+    const avg = rd.temps.length ? (rd.temps.reduce((a, b) => a + b, 0) / rd.temps.length).toFixed(1) : "-";
+    const tn = parseFloat(avg);
+    ctx.font = "11px Arial"; ctx.textAlign = "left"; xo = 20;
+    ctx.fillStyle = "#cbd5e1"; ctx.fillText(String(i + 1), xo, y + 16); xo += cols[0];
+    ctx.fillStyle = room.hex; ctx.fillText(room.name, xo, y + 16); xo += cols[1];
+    ctx.fillStyle = "#94a3b8"; ctx.fillText(`${room.width}x${room.length}`, xo, y + 16); xo += cols[2];
+    ctx.fillText(String(rd.count), xo, y + 16); xo += cols[3];
+    ctx.fillStyle = tn > 27 ? "#ef4444" : tn > 24 ? "#f97316" : "#22c55e";
+    ctx.fillText(avg + "C", xo, y + 16); xo += cols[4];
+    ctx.fillStyle = "#22c55e"; ctx.fillText("Operational", xo, y + 16);
+    y += 26;
+  });
+  y += 8;
+  const total = dd.servers.length + dd.acUnits.length + dd.dgUnits.length;
+  ctx.fillStyle = "#38bdf8"; ctx.font = "bold 12px Arial"; ctx.textAlign = "left";
+  ctx.fillText(`Total: ${total} devices | ${rooms.length} rooms | Multifloor`, 20, y + 14);
+  ctx.fillStyle = "#334155"; ctx.fillRect(0, dh - 28, cw, 28);
+  ctx.fillStyle = "#475569"; ctx.font = "10px monospace"; ctx.textAlign = "center";
+  ctx.fillText("AI-Enabled SaaS DCIM - The IV Facility", cw / 2, dh - 10);
+  return c;
+}
+
+function exportAsPNG() {
+  const src = captureCanvas(); if (!src) return;
+  const data = createDataSummaryCanvas(src.width, 220);
+  const out = document.createElement("canvas");
+  out.width = src.width; out.height = src.height + data.height;
+  const ctx = out.getContext("2d");
+  ctx.drawImage(src, 0, 0); ctx.drawImage(data, 0, src.height);
+  const link = document.createElement("a");
+  link.download = `DCIM_3D_${Date.now()}.png`;
+  link.href = out.toDataURL("image/png");
+  link.click();
+}
+
+function exportAsJPEG() {
+  const src = captureCanvas(); if (!src) return;
+  const data = createDataSummaryCanvas(src.width, 220);
+  const out = document.createElement("canvas");
+  out.width = src.width; out.height = src.height + data.height;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(src, 0, 0); ctx.drawImage(data, 0, src.height);
+  const link = document.createElement("a");
+  link.download = `DCIM_3D_${Date.now()}.jpg`;
+  link.href = out.toDataURL("image/jpeg", 0.92);
+  link.click();
+}
+
+function exportAsPDF() {
+  const src = captureCanvas(); if (!src) return;
+  const imgData = src.toDataURL("image/jpeg", 0.85);
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = pdf.internal.pageSize.getHeight();
+  pdf.setFontSize(18); pdf.setTextColor(30, 64, 175);
+  pdf.text("AI-Enabled SaaS DCIM - 5D Facility View", 14, 18);
+  pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+  pdf.text(`The IV Facility | Multifloor | ${new Date().toLocaleString()}`, 14, 25);
+  const imgW = pw - 28;
+  const imgH = (src.height / src.width) * imgW;
+  const scaledH = Math.min(imgH, ph - 90);
+  pdf.addImage(imgData, "JPEG", 14, 30, imgW, scaledH);
+  let ty = 30 + scaledH + 8;
+  const rooms = getRoomPositions();
+  const dd = generateDeviceData();
+  const rdevs = [
+    { count: dd.servers.length, temps: dd.servers.map(d => parseFloat(d.temperature)) },
+    { count: dd.acUnits.length, temps: dd.acUnits.map(d => parseFloat(d.temperature)) },
+    { count: dd.dgUnits.length, temps: dd.dgUnits.map(d => parseFloat(d.temperature)) },
+  ];
+  pdf.setFillColor(30, 58, 95); pdf.rect(14, ty, pw - 28, 8, "F");
+  pdf.setFontSize(9); pdf.setTextColor(255, 255, 255);
+  pdf.text("#", 18, ty + 5.5); pdf.text("Room", 30, ty + 5.5);
+  pdf.text("Size", 90, ty + 5.5); pdf.text("Devices", 120, ty + 5.5);
+  pdf.text("Avg Temp", 150, ty + 5.5); pdf.text("Status", 180, ty + 5.5);
+  ty += 10;
+  rooms.forEach((room, i) => {
+    if (i % 2 === 0) { pdf.setFillColor(20, 30, 48); pdf.rect(14, ty, pw - 28, 7, "F"); }
+    const rd = rdevs[i] || { count: 0, temps: [] };
+    const avg = rd.temps.length ? (rd.temps.reduce((a, b) => a + b, 0) / rd.temps.length).toFixed(1) : "-";
+    const tn = parseFloat(avg);
+    pdf.setTextColor(203, 213, 225); pdf.text(String(i + 1), 18, ty + 5);
+    const hex = room.hex.replace("#", "");
+    pdf.setTextColor(parseInt(hex.substr(0, 2), 16), parseInt(hex.substr(2, 2), 16), parseInt(hex.substr(4, 2), 16));
+    pdf.text(room.name, 30, ty + 5);
+    pdf.setTextColor(148, 163, 184); pdf.text(`${room.width}x${room.length}`, 90, ty + 5);
+    pdf.text(String(rd.count), 120, ty + 5);
+    pdf.setTextColor(tn > 27 ? 239 : tn > 24 ? 249 : 34, tn > 27 ? 68 : tn > 24 ? 115 : 197, tn > 27 ? 68 : tn > 24 ? 22 : 94);
+    pdf.text(avg + "C", 150, ty + 5);
+    pdf.setTextColor(34, 197, 94); pdf.text("Operational", 180, ty + 5);
+    ty += 8;
+  });
+  pdf.setFontSize(8); pdf.setTextColor(71, 85, 105);
+  pdf.text(`Total: ${dd.servers.length + dd.acUnits.length + dd.dgUnits.length} devices | Generated by AI-Enabled SaaS DCIM`, 14, ph - 8);
+  pdf.save(`DCIM_Report_${Date.now()}.pdf`);
+}
+
+function exportAsDXF() {
+  const rooms = getRoomPositions();
+  let ent = "";
+  const addLine = (x1, y1, x2, y2, ly, co) => { ent += `0\nLINE\n8\n${ly}\n62\n${co}\n10\n${x1.toFixed(2)}\n20\n${y1.toFixed(2)}\n30\n0\n11\n${x2.toFixed(2)}\n21\n${y2.toFixed(2)}\n31\n0\n`; };
+  const addRect = (cx, cy, w, h, ly, co) => { const hw = w/2, hh = h/2; addLine(cx-hw,cy-hh,cx+hw,cy-hh,ly,co); addLine(cx+hw,cy-hh,cx+hw,cy+hh,ly,co); addLine(cx+hw,cy+hh,cx-hw,cy+hh,ly,co); addLine(cx-hw,cy+hh,cx-hw,cy-hh,ly,co); };
+  const addText = (x, y, t, h, ly) => { ent += `0\nTEXT\n8\n${ly}\n10\n${x.toFixed(2)}\n20\n${y.toFixed(2)}\n30\n0\n40\n${h}\n1\n${t}\n`; };
+  const addCircle = (cx, cy, r, ly, co) => { ent += `0\nCIRCLE\n8\n${ly}\n62\n${co}\n10\n${cx.toFixed(2)}\n20\n${cy.toFixed(2)}\n30\n0\n40\n${r.toFixed(2)}\n`; };
+  addRect(0, 0, BUILDING_W, BUILDING_L, "BUILDING", 8);
+  addText(0, BUILDING_L/2 + 6, "AI-Enabled SaaS DCIM - Floor Plan", 3.5, "TITLE");
+  const dc = { "#3498db": 4, "#2ecc71": 3, "#e67e22": 30 };
+  rooms.forEach((room, i) => {
+    addRect(room.x, room.z, room.w, room.l, "ROOMS", dc[room.hex] || 7);
+    addText(room.x, room.z + 1, room.name, 1.8, "LABELS");
+    if (room.name === "Server Room") {
+      const cols = Math.max(2, Math.floor((room.w - 3) / (RACK_W + 0.55)));
+      const cs = RACK_W + 0.55, rs = RACK_D + 1.3;
+      const sx = -(cols * cs - (cs - RACK_W)) / 2 + RACK_W / 2;
+      const sz = -(room.l / 2) + RACK_D / 2 + 1.5;
+      for (let r = 0; r < 4; r++) for (let c = 0; c < cols; c++) addRect(room.x + sx + c * cs, room.z + sz + r * rs, RACK_W, RACK_D, "RACKS", 5);
+    }
+    if (room.name === "AC Unit Room") {
+      const ac = Math.max(2, Math.floor(room.w / 5));
+      const sp = Math.min(4, (room.w - 4) / ac);
+      for (let r = 0; r < 2; r++) for (let c = 0; c < ac; c++) addCircle(room.x - ((ac-1)*sp)/2 + c*sp, room.z - room.l/2 + 4 + r*sp, 0.8, "AC", 3);
+    }
+    if (room.name === "DG Set Room") {
+      for (let d = 0; d < 4; d++) { addRect(room.x - 4.5 + d * 3, room.z, 3.5, 1.8, "DG", 30); addText(room.x - 4.5 + d * 3, room.z - 1.5, `DG-${d+1}`, 1.0, "LABELS"); }
+    }
+  });
+  const nx = -BUILDING_W/2 + 10, ny = -BUILDING_L/2 + 10;
+  addLine(nx, ny, nx, ny + 8, "SYM", 2); addLine(nx-1.5, ny+6, nx, ny+8, "SYM", 2); addLine(nx+1.5, ny+6, nx, ny+8, "SYM", 2);
+  addText(nx, ny - 1.5, "N", 2.0, "SYM");
+  const sx2 = BUILDING_W/2 - 40, sy2 = -BUILDING_L/2 + 6;
+  addLine(sx2, sy2, sx2 + 20, sy2, "SYM", 7); addLine(sx2, sy2-0.5, sx2, sy2+0.5, "SYM", 7); addLine(sx2+20, sy2-0.5, sx2+20, sy2+0.5, "SYM", 7);
+  addText(sx2 + 10, sy2 - 2, "20 units", 1.2, "SYM");
+  const dxf = `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n6\n0\nLAYER\n2\nBUILDING\n70\n0\n62\n8\n6\nCONTINUOUS\n0\nLAYER\n2\nROOMS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nRACKS\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nLAYER\n2\nLABELS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nAC\n70\n0\n62\n3\n6\nCONTINUOUS\n0\nLAYER\n2\nDG\n70\n0\n62\n30\n6\nCONTINUOUS\n0\nLAYER\n2\nSYM\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${ent}0\nENDSEC\n0\nEOF\n`;
+  const blob = new Blob([dxf], { type: "application/dxf" });
+  const link = document.createElement("a");
+  link.download = `DCIM_FloorPlan_${Date.now()}.dxf`;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
   return (
     <>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
@@ -2990,6 +3778,38 @@ useEffect(() => {
           </div>
         </div>
 
+        {/* Option 3: Below Floor */}
+<div
+  onClick={() => { applyBelowFloorView(!belowFloorView); setViewsDropdownOpen(false); }}
+  style={{
+    padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
+    background: belowFloorView ? "#f1f5f9" : "#fff",
+    transition: "background 0.12s",
+  }}
+  onMouseEnter={e => { if (!belowFloorView) e.currentTarget.style.background = "#f8fafc"; }}
+  onMouseLeave={e => { if (!belowFloorView) e.currentTarget.style.background = "#fff"; }}
+>
+  <div style={{
+    width: 36, height: 36, borderRadius: 9,
+    background: "linear-gradient(135deg,#475569,#1e293b)",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+    boxShadow: "0 2px 8px rgba(30,41,59,0.3)",
+  }}>
+    <i className="fas fa-layer-group" style={{ color: "#fff", fontSize: 15 }} />
+  </div>
+  <div style={{ flex: 1 }}>
+    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+      Below Floor View
+      {belowFloorView && (
+        <span style={{ background: "#e2e8f0", color: "#334155", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>ACTIVE</span>
+      )}
+    </div>
+    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Look up through perforated tiles, see cable plenum</div>
+  </div>
+</div>
+
+        
+
         {/* Footer hint */}
         <div style={{ padding: "7px 14px", background: "#f8fafc", borderTop: "1px solid #f1f5f9" }}>
           <div style={{ fontSize: 9.5, color: "#94a3b8" }}>
@@ -3098,65 +3918,32 @@ useEffect(() => {
 
   {/* ── Room Navigation ── */}
   <div style={{marginTop:8, borderTop:"1px solid #e2e8f0", paddingTop:7}}>
-    <div style={{fontSize:10, fontWeight:700, color:"#94a3b8", letterSpacing:".06em", marginBottom:5}}>
-      JUMP TO ROOM
-    </div>
-    <div style={{display:"flex", gap:5, flexWrap:"wrap"}}>
-      {INITIAL_ROOMS.map((rd, idx) => (
-        <button
-          key={rd.id}
-          onClick={() => doZoomRoom(rd.id)}
-          style={{
-            display:"flex", alignItems:"center", gap:5,
-            background: singleRoomView && currentRoomName === rd.name
-              ? rd.hex
-              : "rgba(255,255,255,0.95)",
-            color: singleRoomView && currentRoomName === rd.name ? "#fff" : "#1e293b",
-            border: `1.5px solid ${rd.hex}`,
-            borderRadius:7, padding:"4px 10px",
-            cursor:"pointer", fontSize:11, fontWeight:700,
-            transition:"all 0.15s",
-            boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = rd.hex;
-            e.currentTarget.style.color = "#fff";
-          }}
-          onMouseLeave={e => {
-            if(!(singleRoomView && currentRoomName === rd.name)){
-              e.currentTarget.style.background = "rgba(255,255,255,0.95)";
-              e.currentTarget.style.color = "#1e293b";
-            }
-          }}
-        >
-          <span style={{
-            width:18, height:18, borderRadius:"50%",
-            background: rd.hex, color:"#fff",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:9, fontWeight:900, flexShrink:0,
-            border:"1.5px solid rgba(255,255,255,0.6)"
-          }}>{idx+1}</span>
-          {rd.name}
-        </button>
-      ))}
+  <div style={{fontSize:10, fontWeight:700, color:"#94a3b8", letterSpacing:".06em", marginBottom:5}}>
+    JUMP TO ROOM
+  </div>
+  <div style={{display:"flex", gap:5, flexWrap:"wrap"}}>
+    {INITIAL_ROOMS.map((rd, idx) => (
       <button
-        onClick={showAllRooms}
+        key={rd.id}
+        onClick={() => doZoomRoom(rd.id)}
         style={{
           display:"flex", alignItems:"center", gap:5,
-          background: !singleRoomView ? "#1e3a8a" : "rgba(255,255,255,0.95)",
-          color: !singleRoomView ? "#fff" : "#1e293b",
-          border:"1.5px solid #1e3a8a",
+          background: singleRoomView && currentRoomName === rd.name
+            ? rd.hex
+            : "rgba(255,255,255,0.95)",
+          color: singleRoomView && currentRoomName === rd.name ? "#fff" : "#1e293b",
+          border: `1.5px solid ${rd.hex}`,
           borderRadius:7, padding:"4px 10px",
           cursor:"pointer", fontSize:11, fontWeight:700,
           transition:"all 0.15s",
           boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.background = "#1e3a8a";
+          e.currentTarget.style.background = rd.hex;
           e.currentTarget.style.color = "#fff";
         }}
         onMouseLeave={e => {
-          if(singleRoomView){
+          if(!(singleRoomView && currentRoomName === rd.name)){
             e.currentTarget.style.background = "rgba(255,255,255,0.95)";
             e.currentTarget.style.color = "#1e293b";
           }
@@ -3164,15 +3951,259 @@ useEffect(() => {
       >
         <span style={{
           width:18, height:18, borderRadius:"50%",
-          background:"#1e3a8a", color:"#fff",
+          background: rd.hex, color:"#fff",
           display:"flex", alignItems:"center", justifyContent:"center",
           fontSize:9, fontWeight:900, flexShrink:0,
           border:"1.5px solid rgba(255,255,255,0.6)"
-        }}>⊞</span>
-        All Rooms
+        }}>{idx+1}</span>
+        {rd.name}
+      </button>
+    ))}
+    <button
+      onClick={showAllRooms}
+      style={{
+        display:"flex", alignItems:"center", gap:5,
+        background: !singleRoomView ? "#1e3a8a" : "rgba(255,255,255,0.95)",
+        color: !singleRoomView ? "#fff" : "#1e293b",
+        border:"1.5px solid #1e3a8a",
+        borderRadius:7, padding:"4px 10px",
+        cursor:"pointer", fontSize:11, fontWeight:700,
+        transition:"all 0.15s",
+        boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = "#1e3a8a";
+        e.currentTarget.style.color = "#fff";
+      }}
+      onMouseLeave={e => {
+        if(singleRoomView){
+          e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+          e.currentTarget.style.color = "#1e293b";
+        }
+      }}
+    >
+      <span style={{
+        width:18, height:18, borderRadius:"50%",
+        background:"#1e3a8a", color:"#fff",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        fontSize:9, fontWeight:900, flexShrink:0,
+        border:"1.5px solid rgba(255,255,255,0.6)"
+      }}>⊞</span>
+      All Rooms
+    </button>
+  </div>
+
+  {/* ── Bird's Eye View Button ── */}
+  <button
+    onClick={toggleBirdEyeView}
+    style={{
+      display:"flex", alignItems:"center", gap:6,
+      marginTop:8, width:"100%",
+      background: isBirdEye
+        ? "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)"
+        : "rgba(255,255,255,0.95)",
+      color: isBirdEye ? "#fff" : "#1e293b",
+      border: isBirdEye ? "1.5px solid #0ea5e9" : "1.5px solid #cbd5e1",
+      borderRadius:7, padding:"6px 12px",
+      cursor:"pointer", fontSize:11, fontWeight:700,
+      transition:"all 0.2s",
+      boxShadow: isBirdEye
+        ? "0 2px 12px rgba(14,165,233,0.35)"
+        : "0 1px 4px rgba(0,0,0,0.08)"
+    }}
+    onMouseEnter={e => {
+      if(!isBirdEye){
+        e.currentTarget.style.background = "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)";
+        e.currentTarget.style.color = "#fff";
+        e.currentTarget.style.borderColor = "#0ea5e9";
+        e.currentTarget.style.boxShadow = "0 2px 12px rgba(14,165,233,0.35)";
+      }
+    }}
+    onMouseLeave={e => {
+      if(!isBirdEye){
+        e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+        e.currentTarget.style.color = "#1e293b";
+        e.currentTarget.style.borderColor = "#cbd5e1";
+        e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
+      }
+    }}
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+      {isBirdEye && <>
+        <line x1="12" y1="1" x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="1" y1="12" x2="5" y2="12"/>
+        <line x1="19" y1="12" x2="23" y2="12"/>
+      </>}
+    </svg>
+    {isBirdEye ? "Exit Bird's Eye View" : "Bird's Eye View"}
+  </button>
+
+  {/* ── Export / Download Section ── */}
+  <div style={{marginTop:8, borderTop:"1px solid #e2e8f0", paddingTop:7}}>
+    <div style={{fontSize:10, fontWeight:700, color:"#94a3b8", letterSpacing:".06em", marginBottom:6}}>
+      EXPORT 3D VIEW + DATA
+    </div>
+    <div style={{display:"flex", gap:5, flexWrap:"wrap"}}>
+      {/* PNG */}
+      <button
+        onClick={exportAsPNG}
+        title="Download as PNG with data summary"
+        style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"rgba(255,255,255,0.95)",
+          color:"#1e293b",
+          border:"1.5px solid #e2e8f0",
+          borderRadius:7, padding:"4px 10px",
+          cursor:"pointer", fontSize:11, fontWeight:700,
+          transition:"all 0.15s",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "#059669";
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderColor = "#059669";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+          e.currentTarget.style.color = "#1e293b";
+          e.currentTarget.style.borderColor = "#e2e8f0";
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span style={{
+          background:"#059669", color:"#fff",
+          fontSize:8, fontWeight:900, padding:"1px 4px",
+          borderRadius:3, letterSpacing:"0.05em"
+        }}>PNG</span>
+      </button>
+
+      {/* JPEG */}
+      <button
+        onClick={exportAsJPEG}
+        title="Download as JPEG with data summary"
+        style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"rgba(255,255,255,0.95)",
+          color:"#1e293b",
+          border:"1.5px solid #e2e8f0",
+          borderRadius:7, padding:"4px 10px",
+          cursor:"pointer", fontSize:11, fontWeight:700,
+          transition:"all 0.15s",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "#d97706";
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderColor = "#d97706";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+          e.currentTarget.style.color = "#1e293b";
+          e.currentTarget.style.borderColor = "#e2e8f0";
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span style={{
+          background:"#d97706", color:"#fff",
+          fontSize:8, fontWeight:900, padding:"1px 4px",
+          borderRadius:3, letterSpacing:"0.05em"
+        }}>JPEG</span>
+      </button>
+
+      {/* PDF */}
+      <button
+        onClick={exportAsPDF}
+        title="Download as PDF report with 3D view and data table"
+        style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"rgba(255,255,255,0.95)",
+          color:"#1e293b",
+          border:"1.5px solid #e2e8f0",
+          borderRadius:7, padding:"4px 10px",
+          cursor:"pointer", fontSize:11, fontWeight:700,
+          transition:"all 0.15s",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "#dc2626";
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderColor = "#dc2626";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+          e.currentTarget.style.color = "#1e293b";
+          e.currentTarget.style.borderColor = "#e2e8f0";
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span style={{
+          background:"#dc2626", color:"#fff",
+          fontSize:8, fontWeight:900, padding:"1px 4px",
+          borderRadius:3, letterSpacing:"0.05em"
+        }}>PDF</span>
+      </button>
+
+      {/* DWG/DXF */}
+      <button
+        onClick={exportAsDXF}
+        title="Download as DXF floor plan (opens in AutoCAD, LibreCAD, etc.)"
+        style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"rgba(255,255,255,0.95)",
+          color:"#1e293b",
+          border:"1.5px solid #e2e8f0",
+          borderRadius:7, padding:"4px 10px",
+          cursor:"pointer", fontSize:11, fontWeight:700,
+          transition:"all 0.15s",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "#2563eb";
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.borderColor = "#2563eb";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+          e.currentTarget.style.color = "#1e293b";
+          e.currentTarget.style.borderColor = "#e2e8f0";
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="1"/>
+          <line x1="2" y1="8" x2="22" y2="8"/>
+          <line x1="8" y1="2" x2="8" y2="22"/>
+          <line x1="14" y1="2" x2="14" y2="22"/>
+          <line x1="2" y1="14" x2="22" y2="14"/>
+        </svg>
+        <span style={{
+          background:"#2563eb", color:"#fff",
+          fontSize:8, fontWeight:900, padding:"1px 4px",
+          borderRadius:3, letterSpacing:"0.05em"
+        }}>DWG</span>
       </button>
     </div>
+    <div style={{fontSize:8, color:"#94a3b8", marginTop:4, lineHeight:1.3}}>
+      PNG/JPEG: 3D render + data table &nbsp;•&nbsp; PDF: Full report &nbsp;•&nbsp; DWG: CAD floor plan
+    </div>
   </div>
+</div>
 </div>
 
         <button onClick={showAllRooms} style={{position:"absolute",bottom:14,left:14,background:"rgba(255,255,255,.94)",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 15px",cursor:"pointer",fontSize:12,fontWeight:700,color:"#1a3a5c",zIndex:50,display:"flex",alignItems:"center",gap:7,boxShadow:"0 2px 8px rgba(0,0,0,.09)"}}>
@@ -3199,9 +4230,9 @@ useEffect(() => {
           <div style={{position:"absolute",inset:0,background:"rgba(221,228,238,.97)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200}}>
             <div style={{fontSize:11,letterSpacing:".18em",textTransform:"uppercase",color:"#2563eb",fontWeight:700,marginBottom:10}}>Tier IV Facility</div>
             <div style={{fontSize:30,fontWeight:900,color:"#0f2460",marginBottom:6}}>AI-Enabled SaaS DCIM</div>
-            <div style={{fontSize:13,color:"#64748b",marginBottom:30}}>{BUILDING_W}m × {BUILDING_L}m Multi-room 3D Viewer</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:30}}>{BUILDING_W}m × {BUILDING_L}m Multi-room 5D Viewer</div>
             <div style={{width:46,height:46,border:"4px solid #bfdbfe",borderTopColor:"#2563eb",borderRadius:"50%",animation:"spin .85s linear infinite"}}></div>
-            <div style={{color:"#1e3a8a",fontWeight:700,fontSize:15,marginTop:20}}>Constructing 3D Scene</div>
+            <div style={{color:"#1e3a8a",fontWeight:700,fontSize:15,marginTop:20}}>Constructing 5D Scene</div>
             <div style={{color:"#94a3b8",fontSize:12,marginTop:5}}>Loading 6 default Wall ACs · Rack UI · Router · Firewall · Switch</div>
           </div>
         )}

@@ -535,7 +535,7 @@ const AddRoom = () => {
     }));
     
     // Navigate to DCIMViewer
-    navigate("/dcim-viewer", { 
+    navigate("/display-dash-animate", { 
       state: { 
         roomId,
         roomName: room.roomName,
@@ -889,7 +889,7 @@ const AddRoom = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Tooltip title="View in 3D">
+          <Tooltip title="View in 5D">
             <Button 
               type="text" 
               icon={<EyeOutlined />} 
@@ -1579,7 +1579,6 @@ const AddRoom = () => {
         </>
       )}
 
-    
 
     </div>
   );

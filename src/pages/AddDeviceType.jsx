@@ -17,6 +17,9 @@ import {
   CloseOutlined, ExclamationCircleOutlined, CheckCircleOutlined,
   CloseCircleOutlined, EditOutlined, DeleteOutlined
 } from '@ant-design/icons';
+// Types and their asset counts come from the shared asset register — every
+// kind of device the 5D View holds, named as the 5D View names it.
+import { TYPES, CATEGORY_NAMES, ASSET_SUMMARY } from '../Component/MainDashboard/dcimAssetRegister';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -54,10 +57,8 @@ const AVAILABLE_ICONS = [
   { name: 'FaList',                component: <FaList />,                color: '#fa8c16', label: 'Other' },
 ];
 
-const CATEGORIES = [
-  'Infrastructure', 'Power Distribution', 'Power Backup', 'Cooling',
-  'Networking', 'Computing', 'Storage', 'Security', 'Monitoring', 'Other'
-];
+// Same names as the Category page.
+const CATEGORIES = CATEGORY_NAMES;
 
 const IconSelector = memo(({ selectedIcon, onSelectIcon }) => (
   <div style={{ width: 280, maxHeight: 260, overflowY: 'auto', padding: 4 }}>
@@ -97,15 +98,10 @@ const AddDeviceType = () => {
   const [selectedIcon, setSelectedIcon]         = useState('FaServer');
   const modalModeRef = useRef('add');
 
-  const [deviceTypes, setDeviceTypes] = useState([
-    { id:1, device_type_id:'DT001', type_name:'Server Rack',    category:'Infrastructure',     icon:'FaCubes',             iconColor:'#fa8c16', created_at:'2024-01-15', status:'Active',   description:'Standard server rack for mounting equipment' },
-    { id:2, device_type_id:'DT002', type_name:'PDU',            category:'Power Distribution', icon:'FaPlug',              iconColor:'#52c41a', created_at:'2024-01-15', status:'Active',   description:'Power Distribution Unit for rack power management' },
-    { id:3, device_type_id:'DT003', type_name:'UPS',            category:'Power Backup',       icon:'FaExclamationTriangle',iconColor:'#fa8c16', created_at:'2024-01-16', status:'Active',   description:'Uninterruptible Power Supply for backup power' },
-    { id:4, device_type_id:'DT004', type_name:'HVAC',           category:'Cooling',            icon:'FaFan',               iconColor:'#722ed1', created_at:'2024-01-16', status:'Active',   description:'Heating, Ventilation and Air Conditioning units' },
-    { id:5, device_type_id:'DT005', type_name:'Network Switch', category:'Networking',         icon:'FaSitemap',           iconColor:'#1890ff', created_at:'2024-01-17', status:'Active',   description:'Network switches for data connectivity' },
-    { id:6, device_type_id:'DT006', type_name:'Server',         category:'Computing',          icon:'FaServer',            iconColor:'#1890ff', created_at:'2024-01-17', status:'Active',   description:'Physical servers for computing resources' },
-    { id:7, device_type_id:'DT007', type_name:'Storage Array',  category:'Storage',            icon:'FaHdd',               iconColor:'#52c41a', created_at:'2024-01-18', status:'Inactive', description:'Storage arrays for data storage' },
-  ]);
+  const [deviceTypes, setDeviceTypes] = useState(() => TYPES.map((t, i) => ({
+    id: i + 1, device_type_id: `DT${String(i + 1).padStart(3, '0')}`, type_name: t.type, category: t.category,
+    icon: t.icon, iconColor: t.iconColor, created_at: t.createdDate, status: 'Active', description: t.description,
+  })));
 
   const handleAddNew = useCallback(() => {
     modalModeRef.current = 'add';
@@ -220,6 +216,11 @@ const AddDeviceType = () => {
       sorter: (a, b) => a.category.localeCompare(b.category),
       filters: [...new Set(deviceTypes.map(d => d.category))].map(c => ({ text: c, value: c })),
       onFilter: (value, record) => record.category === value,
+    },
+    {
+      title: 'Assets', key: 'assets', width: 80, align: 'right',
+      render: (_, r) => <Text strong style={{ fontSize: 12, color: '#1890ff' }}>{(ASSET_SUMMARY.byType[r.type_name] || 0).toLocaleString('en-IN')}</Text>,
+      sorter: (a, b) => (ASSET_SUMMARY.byType[a.type_name] || 0) - (ASSET_SUMMARY.byType[b.type_name] || 0),
     },
     {
       title: 'Description', dataIndex: 'description', key: 'description',
@@ -359,7 +360,6 @@ const AddDeviceType = () => {
         </div>
       </div>
 
-   
 
       {/* ══ ADD / EDIT MODAL ══ */}
       {modalVisible && (

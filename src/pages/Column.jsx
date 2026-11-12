@@ -1,6 +1,7 @@
 // src/pages/Columns.jsx
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaSort, FaSortUp, FaSortDown, FaPlus, FaColumns } from 'react-icons/fa';
+import { CO2API, gasFetch } from '../../config';
 
 const Column = () => {
   console.log('Compartment component rendering');
@@ -52,7 +53,7 @@ const Column = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(
+      const response = await gasFetch(
         `${CO2API}/api/Column?pageNumber=${page}&pageSize=${pageSize}`
       );
       
@@ -105,7 +106,7 @@ const Column = () => {
       
       if (editingColumn) {
         // PUT request for editing
-        response = await fetch(`${CO2API}/api/Column/${editingColumn.id}`, {
+        response = await gasFetch(`${CO2API}/api/Column/${editingColumn.id}`, {
           method: 'PUT',
           headers: {
             'accept': '*/*',
@@ -115,7 +116,7 @@ const Column = () => {
         });
       } else {
         // POST request for adding new
-        response = await fetch(`${CO2API}/api/Column`, {
+        response = await gasFetch(`${CO2API}/api/Column`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -160,7 +161,7 @@ const Column = () => {
     if (window.confirm('Are you sure you want to delete this Compartment?')) {
       try {
         setLoading(true);
-        const response = await fetch(`${CO2API}/api/Column/${id}`, {
+        const response = await gasFetch(`${CO2API}/api/Column/${id}`, {
           method: 'DELETE',
         });
         

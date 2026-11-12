@@ -20,6 +20,7 @@
     "antd": "^5.25.4",
     "apexcharts": "^4.7.0",
     "axios": "^1.8.4",
+    "dxf-parser": "^1.1.2",
     "framer-motion": "^12.7.4",
     "js-cookie": "^3.0.5",
     "jspdf": "^4.0.0",
